@@ -15,7 +15,7 @@ func loop(tsdb TSDB, senders []Sender, count int, tickerChan chan time.Time) (er
 		}(sender)
 	}
 	for t := range tickerChan {
-		err = sendMetricsToChannel(tsdb, count, metricsChan, &t)
+		err = sendMetricsToChannel(tsdb, count, metricsChan, t)
 		if err != nil {
 			return err
 		}
@@ -47,13 +47,13 @@ func tickerLoop(tsdb TSDB, metrics chan SendMetric, tickerChan chan time.Time, c
 		select {
 		case newCount = <-countChan:
 			count = checkCount(count, &newCount)
-			err = sendMetricsToChannel(tsdb, count, metrics, &t)
+			err = sendMetricsToChannel(tsdb, count, metrics, t)
 			if err != nil {
 				return
 			}
 		default:
 			count = checkCount(count, &newCount)
-			err = sendMetricsToChannel(tsdb, count, metrics, &t)
+			err = sendMetricsToChannel(tsdb, count, metrics, t)
 			if err != nil {
 				return
 			}
@@ -79,7 +79,7 @@ func checkCount(initialCount int, newCount *countStruct) int {
 	return tmpCount
 }
 
-func sendMetricsToChannel(tsdb TSDB, count int, metrics chan SendMetric, t *time.Time) (err error) {
+func sendMetricsToChannel(tsdb TSDB, count int, metrics chan SendMetric, t time.Time) (err error) {
 	for i := 0; i < count; i++ {
 		metric, err := tsdb.Metric(i)
 		if err != nil {

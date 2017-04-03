@@ -8,7 +8,7 @@ import (
 // Use SendMetric.Time in Sender.Send setting time.
 type SendMetric struct {
 	Metric Metric
-	Time   *time.Time
+	Time   time.Time
 }
 
 // Metric is a main interface for metrics

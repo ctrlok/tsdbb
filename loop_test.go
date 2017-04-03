@@ -46,7 +46,7 @@ func (t *testTSDB) Metric(i int) (m Metric, err error) {
 func TestSenderInstance(t *testing.T) {
 	timeNow := time.Now()
 	metric := testMetric{}
-	sendMetric := SendMetric{Metric: &metric, Time: &timeNow}
+	sendMetric := SendMetric{Metric: &metric, Time: timeNow}
 
 	// Do nothing if don't have any metric
 	sender := testSender{sended: 0}
@@ -81,7 +81,7 @@ func TestSendMetricsToChannel(t *testing.T) {
 
 	metrics = make(chan SendMetric, 10)
 	tsdb = &testTSDB{}
-	err = sendMetricsToChannel(tsdb, 2, metrics, &time)
+	err = sendMetricsToChannel(tsdb, 2, metrics, time)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, tsdb.getMetric)
 	assert.Equal(t, 2, len(metrics))
@@ -89,7 +89,7 @@ func TestSendMetricsToChannel(t *testing.T) {
 
 	metrics = make(chan SendMetric, 20)
 	tsdb = &testTSDB{}
-	err = sendMetricsToChannel(tsdb, 19, metrics, &time)
+	err = sendMetricsToChannel(tsdb, 19, metrics, time)
 	assert.Error(t, err)
 	assert.Equal(t, 10, tsdb.getMetric)
 	assert.Equal(t, 10, len(metrics))
@@ -355,7 +355,7 @@ func BenchmarkSendMetricsToChannel(b *testing.B) {
 	}()
 
 	for n := 0; n < b.N; n++ {
-		sendMetricsToChannel(tsdb, 1, metrics, &time)
+		sendMetricsToChannel(tsdb, 1, metrics, time)
 	}
 }
 
@@ -371,7 +371,7 @@ func BenchmarkSenderInstance_MetricsBlackhole(b *testing.B) {
 	timeNow := time.Now()
 	go func() {
 		for {
-			metricChan <- SendMetric{Metric: &benchMetric{}, Time: &timeNow}
+			metricChan <- SendMetric{Metric: &benchMetric{}, Time: timeNow}
 		}
 	}()
 
@@ -388,7 +388,7 @@ func BenchmarkSenderInstance_MetricsInmem(b *testing.B) {
 	timeNow := time.Now()
 	go func() {
 		for {
-			metricChan <- SendMetric{Metric: &benchMetric{}, Time: &timeNow}
+			metricChan <- SendMetric{Metric: &benchMetric{}, Time: timeNow}
 		}
 	}()
 
