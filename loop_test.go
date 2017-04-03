@@ -369,10 +369,9 @@ func BenchmarkSenderInstance_MetricsBlackhole(b *testing.B) {
 	sender := &benchSender{host: "host"}
 	metricChan := make(chan SendMetric, 10000)
 	timeNow := time.Now()
-	sendMetric := SendMetric{Metric: &benchMetric{}, Time: &timeNow}
 	go func() {
 		for {
-			metricChan <- sendMetric
+			metricChan <- SendMetric{Metric: &benchMetric{}, Time: &timeNow}
 		}
 	}()
 
@@ -387,10 +386,9 @@ func BenchmarkSenderInstance_MetricsInmem(b *testing.B) {
 	sender := &benchSender{host: "host"}
 	metricChan := make(chan SendMetric, 10000)
 	timeNow := time.Now()
-	sendMetric := SendMetric{Metric: &benchMetric{}, Time: &timeNow}
 	go func() {
 		for {
-			metricChan <- sendMetric
+			metricChan <- SendMetric{Metric: &benchMetric{}, Time: &timeNow}
 		}
 	}()
 
