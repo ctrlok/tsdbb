@@ -1,14 +1,15 @@
-package main
+package server
 
 import "time"
 import "github.com/armon/go-metrics"
+import i "github.com/ctrlok/tsdbb/interfaces"
 
-func loop(tsdb TSDB, senders []Sender, count int, tickerChan chan time.Time) (err error) {
-	metricsChan := make(chan SendMetric, 100000) // This is best value in my benchmarks
+func loop(tsdb i.TSDB, senders []i.Sender, count int, tickerChan chan time.Time) (err error) {
+	metricsChan := make(chan i.SendMetric, 100000) // This is best value in my benchmarks
 	// metrics := make(chan SendMetric, len(senders))
 	defer close(metricsChan)
 	for _, sender := range senders {
-		go func(sender Sender) {
+		go func(sender i.Sender) {
 			for {
 				senderInstance(sender, metricsChan)
 			}
@@ -23,7 +24,7 @@ func loop(tsdb TSDB, senders []Sender, count int, tickerChan chan time.Time) (er
 	return
 }
 
-func senderInstance(sender Sender, metricsChan chan SendMetric) {
+func senderInstance(sender i.Sender, metricsChan chan i.SendMetric) {
 	metric, next := <-metricsChan
 	if next {
 		err := sender.Send(metric)
@@ -41,7 +42,7 @@ type countStruct struct {
 	step  int
 }
 
-func tickerLoop(tsdb TSDB, metrics chan SendMetric, tickerChan chan time.Time, countChan chan countStruct, count int) (err error) {
+func tickerLoop(tsdb i.TSDB, metrics chan i.SendMetric, tickerChan chan time.Time, countChan chan countStruct, count int) (err error) {
 	newCount := countStruct{count: count, step: 0}
 	for t := range tickerChan {
 		select {
@@ -79,13 +80,13 @@ func checkCount(initialCount int, newCount *countStruct) int {
 	return tmpCount
 }
 
-func sendMetricsToChannel(tsdb TSDB, count int, metrics chan SendMetric, t time.Time) (err error) {
-	for i := 0; i < count; i++ {
-		metric, err := tsdb.Metric(i)
+func sendMetricsToChannel(tsdb i.TSDB, count int, metrics chan i.SendMetric, t time.Time) (err error) {
+	for n := 0; n < count; n++ {
+		metric, err := tsdb.Metric(n)
 		if err != nil {
 			return err
 		}
-		metrics <- SendMetric{Metric: metric, Time: t}
+		metrics <- i.SendMetric{Metric: metric, Time: t}
 	}
 	return
 }

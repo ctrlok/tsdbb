@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	i "github.com/ctrlok/tsdbb/interfaces"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )
@@ -18,7 +19,7 @@ type testSender struct {
 func (t *testSender) SetHost(string)  { return }
 func (t *testSender) GetHost() string { return t.host }
 func (t *testSender) Connect() error  { return nil }
-func (t *testSender) Send(s SendMetric) error {
+func (t *testSender) Send(s i.SendMetric) error {
 	t.sended++
 	return nil
 }
@@ -34,7 +35,7 @@ type testTSDB struct {
 }
 
 func (t *testTSDB) GenerateMetrics(i int) {}
-func (t *testTSDB) Metric(i int) (m Metric, err error) {
+func (t *testTSDB) Metric(i int) (m i.Metric, err error) {
 	if i >= 10 {
 		err = fmt.Errorf("bigger that exist")
 		return &testMetric{}, err
@@ -46,11 +47,11 @@ func (t *testTSDB) Metric(i int) (m Metric, err error) {
 func TestSenderInstance(t *testing.T) {
 	timeNow := time.Now()
 	metric := testMetric{}
-	sendMetric := SendMetric{Metric: &metric, Time: timeNow}
+	sendMetric := i.SendMetric{Metric: &metric, Time: timeNow}
 
 	// Do nothing if don't have any metric
 	sender := testSender{sended: 0}
-	metrics := make(chan SendMetric, 1)
+	metrics := make(chan i.SendMetric, 1)
 	go senderInstance(&sender, metrics)
 	time.Sleep(1 * time.Millisecond)
 	assert.Zero(t, sender.sended, "Do nothing if don't have any metric")
@@ -58,7 +59,7 @@ func TestSenderInstance(t *testing.T) {
 
 	// Send message if it has messages in channel
 	sender = testSender{sended: 0}
-	metrics = make(chan SendMetric, 1)
+	metrics = make(chan i.SendMetric, 1)
 	metrics <- sendMetric
 	senderInstance(&sender, metrics)
 	assert.NotZero(t, sender.sended, "Send message if it has messages in channel")
@@ -67,7 +68,7 @@ func TestSenderInstance(t *testing.T) {
 
 	// Don't do anything if channel was closed
 	sender = testSender{sended: 0}
-	metrics = make(chan SendMetric, 1)
+	metrics = make(chan i.SendMetric, 1)
 	close(metrics)
 	senderInstance(&sender, metrics)
 	assert.Zero(t, sender.sended, "Don't do anything if channel was closed")
@@ -76,10 +77,10 @@ func TestSenderInstance(t *testing.T) {
 func TestSendMetricsToChannel(t *testing.T) {
 	var err error
 	var tsdb *testTSDB
-	var metrics chan SendMetric
+	var metrics chan i.SendMetric
 	time := time.Now()
 
-	metrics = make(chan SendMetric, 10)
+	metrics = make(chan i.SendMetric, 10)
 	tsdb = &testTSDB{}
 	err = sendMetricsToChannel(tsdb, 2, metrics, time)
 	assert.NoError(t, err)
@@ -87,7 +88,7 @@ func TestSendMetricsToChannel(t *testing.T) {
 	assert.Equal(t, 2, len(metrics))
 	close(metrics)
 
-	metrics = make(chan SendMetric, 20)
+	metrics = make(chan i.SendMetric, 20)
 	tsdb = &testTSDB{}
 	err = sendMetricsToChannel(tsdb, 19, metrics, time)
 	assert.Error(t, err)
@@ -114,7 +115,7 @@ func TestTickerLoop_Basic(t *testing.T) {
 	var err error
 	timeNow := time.Now()
 	tsdb := testTSDB{}
-	metrics := make(chan SendMetric, 100)
+	metrics := make(chan i.SendMetric, 100)
 	tickerChan := make(chan time.Time, 100)
 	countChan := make(chan countStruct, 100)
 
@@ -131,7 +132,7 @@ func TestTickerLoop_TwoTicks(t *testing.T) {
 	var err error
 	timeNow := time.Now()
 	tsdb := testTSDB{}
-	metrics := make(chan SendMetric, 100)
+	metrics := make(chan i.SendMetric, 100)
 	tickerChan := make(chan time.Time, 100)
 	countChan := make(chan countStruct, 100)
 
@@ -149,7 +150,7 @@ func TestTickerLoop_ErrorOutOfIndex(t *testing.T) {
 	var err error
 	timeNow := time.Now()
 	tsdb := testTSDB{}
-	metrics := make(chan SendMetric, 100)
+	metrics := make(chan i.SendMetric, 100)
 	tickerChan := make(chan time.Time, 100)
 	countChan := make(chan countStruct, 100)
 
@@ -167,7 +168,7 @@ func TestTickerLoop_NoErrorOutOfIndex(t *testing.T) {
 	var err error
 	timeNow := time.Now()
 	tsdb := testTSDB{}
-	metrics := make(chan SendMetric, 100)
+	metrics := make(chan i.SendMetric, 100)
 	tickerChan := make(chan time.Time, 100)
 	countChan := make(chan countStruct, 100)
 
@@ -184,7 +185,7 @@ func TestTickerLoop_countUp1(t *testing.T) {
 	var err error
 	timeNow := time.Now()
 	tsdb := testTSDB{}
-	metrics := make(chan SendMetric, 100)
+	metrics := make(chan i.SendMetric, 100)
 	tickerChan := make(chan time.Time, 100)
 	countChan := make(chan countStruct, 100)
 
@@ -203,7 +204,7 @@ func TestTickerLoop_countUp2(t *testing.T) {
 	var err error
 	timeNow := time.Now()
 	tsdb := testTSDB{}
-	metrics := make(chan SendMetric, 100)
+	metrics := make(chan i.SendMetric, 100)
 	tickerChan := make(chan time.Time, 100)
 	countChan := make(chan countStruct, 100)
 
@@ -222,7 +223,7 @@ func TestTickerLoop_countZero(t *testing.T) {
 	var err error
 	timeNow := time.Now()
 	tsdb := testTSDB{}
-	metrics := make(chan SendMetric, 100)
+	metrics := make(chan i.SendMetric, 100)
 	tickerChan := make(chan time.Time, 100)
 	countChan := make(chan countStruct, 100)
 
@@ -240,7 +241,7 @@ func TestTickerLoop_countGoroutine(t *testing.T) {
 	done := make(chan error)
 	timeNow := time.Now()
 	tsdb := testTSDB{}
-	metrics := make(chan SendMetric, 100)
+	metrics := make(chan i.SendMetric, 100)
 	tickerChan := make(chan time.Time, 100)
 	countChan := make(chan countStruct, 100)
 
@@ -259,7 +260,7 @@ func TestTickerLoop_countGoroutine(t *testing.T) {
 	assert.Equal(t, 4, tsdb.getMetric)
 
 	for len(metrics) != 0 {
-		_ = <-metrics
+		<-metrics
 	}
 	tsdb.getMetric = 0
 
@@ -275,7 +276,7 @@ func TestTickerLoop_countGoroutine(t *testing.T) {
 	assert.Equal(t, 6, tsdb.getMetric)
 
 	for len(metrics) != 0 {
-		_ = <-metrics
+		<-metrics
 	}
 	tsdb.getMetric = 0
 
@@ -290,7 +291,7 @@ func TestTickerLoop_countGoroutine(t *testing.T) {
 	assert.Equal(t, 8, tsdb.getMetric)
 
 	for len(metrics) != 0 {
-		_ = <-metrics
+		<-metrics
 	}
 	tsdb.getMetric = 0
 
@@ -325,27 +326,27 @@ type benchSender struct {
 	host string
 }
 
-func (t *benchSender) SetHost(string)          { return }
-func (t *benchSender) GetHost() string         { return t.host }
-func (t *benchSender) Connect() error          { return nil }
-func (t *benchSender) Send(s SendMetric) error { return nil }
+func (t *benchSender) SetHost(string)            { return }
+func (t *benchSender) GetHost() string           { return t.host }
+func (t *benchSender) Connect() error            { return nil }
+func (t *benchSender) Send(s i.SendMetric) error { return nil }
 
 type benchMetric struct{}
 
 func (m *benchMetric) Name() string { return "" }
 
 type benchTSDB struct {
-	metric Metric
+	metric i.Metric
 }
 
 func (t *benchTSDB) GenerateMetrics(i int) {}
-func (t *benchTSDB) Metric(i int) (m Metric, err error) {
+func (t *benchTSDB) Metric(i int) (m i.Metric, err error) {
 	return t.metric, nil
 }
 
 func BenchmarkSendMetricsToChannel(b *testing.B) {
 	time := time.Now()
-	metrics := make(chan SendMetric, 100)
+	metrics := make(chan i.SendMetric, 100)
 	tsdb := &benchTSDB{metric: &benchMetric{}}
 
 	go func() {
@@ -367,11 +368,11 @@ func BenchmarkSendMetricsToChannel(b *testing.B) {
 // BenchmarkSenderInstance_MetricsInmem-4       	 5000000	      2593 ns/op	     208 B/op	       4 allocs/op
 func BenchmarkSenderInstance_MetricsBlackhole(b *testing.B) {
 	sender := &benchSender{host: "host"}
-	metricChan := make(chan SendMetric, 10000)
+	metricChan := make(chan i.SendMetric, 10000)
 	timeNow := time.Now()
 	go func() {
 		for {
-			metricChan <- SendMetric{Metric: &benchMetric{}, Time: timeNow}
+			metricChan <- i.SendMetric{Metric: &benchMetric{}, Time: timeNow}
 		}
 	}()
 
@@ -384,11 +385,11 @@ func BenchmarkSenderInstance_MetricsInmem(b *testing.B) {
 	inm := metrics.NewInmemSink(10*time.Second, time.Minute)
 	metrics.NewGlobal(metrics.DefaultConfig("service-name"), inm)
 	sender := &benchSender{host: "host"}
-	metricChan := make(chan SendMetric, 10000)
+	metricChan := make(chan i.SendMetric, 10000)
 	timeNow := time.Now()
 	go func() {
 		for {
-			metricChan <- SendMetric{Metric: &benchMetric{}, Time: timeNow}
+			metricChan <- i.SendMetric{Metric: &benchMetric{}, Time: timeNow}
 		}
 	}()
 
@@ -401,7 +402,7 @@ func BenchmarkSenderInstance_MetricsInmem(b *testing.B) {
 func BenchmarkTickerLoop(b *testing.B) {
 	timeNow := time.Now()
 	tsdb := &benchTSDB{metric: &benchMetric{}}
-	metrics := make(chan SendMetric, 100)
+	metrics := make(chan i.SendMetric, 100)
 	countChan := make(chan countStruct, 100)
 	tickerChan := make(chan time.Time, 1)
 
@@ -421,7 +422,7 @@ func BenchmarkLoop(b *testing.B) {
 	timeNow := time.Now()
 	tsdb := &benchTSDB{metric: &benchMetric{}}
 	tickerChan := make(chan time.Time)
-	senders := []Sender{
+	senders := []i.Sender{
 		&benchSender{},
 		&benchSender{},
 		&benchSender{},
