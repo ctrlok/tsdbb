@@ -17,6 +17,12 @@ package cmd
 import "github.com/spf13/cobra"
 import "time"
 
+var startCount int
+var parallel int
+var tick time.Duration
+var maxMetrics int
+var statDisable bool
+
 // benchCmd represents the bench command
 var benchCmd = &cobra.Command{
 	Use:   "bench",
@@ -31,10 +37,10 @@ to quickly create a Cobra application.`,
 
 func init() {
 	RootCmd.AddCommand(benchCmd)
-	benchCmd.PersistentFlags().IntP("start-count", "c", 1000, "Start count of metrics which will be send")
-	benchCmd.PersistentFlags().IntP("parallel", "p", 6, "How much workers you should start to send metrics")
-	benchCmd.PersistentFlags().DurationP("tick", "t", 10*time.Second, "retention period")
-	benchCmd.PersistentFlags().Int("maximum-metrics", 10000000, "maximum of metrics, which would be sended for one tick")
-	benchCmd.PersistentFlags().Bool("disable-statistics", false, "disable internal metrics")
+	benchCmd.PersistentFlags().IntVarP(&startCount, "start-count", "c", 1000, "Start count of metrics which will be send")
+	benchCmd.PersistentFlags().IntVarP(&parallel, "parallel", "p", 6, "How much workers you should start to send metrics")
+	benchCmd.PersistentFlags().DurationVarP(&tick, "tick", "t", 10*time.Second, "retention period")
+	benchCmd.PersistentFlags().IntVar(&maxMetrics, "maximum-metrics", 10000000, "maximum of metrics, which would be sended for one tick")
+	benchCmd.PersistentFlags().BoolVar(&statDisable, "statistics-disable", false, "disable internal metrics")
 
 }

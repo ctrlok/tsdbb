@@ -34,6 +34,7 @@ type testTSDB struct {
 	getMetric int
 }
 
+func (t *testTSDB) NewSender() i.Sender   { return &testSender{} }
 func (t *testTSDB) GenerateMetrics(i int) {}
 func (t *testTSDB) Metric(i int) (m i.Metric, err error) {
 	if i >= 10 {
@@ -339,6 +340,7 @@ type benchTSDB struct {
 	metric i.Metric
 }
 
+func (t *benchTSDB) NewSender() i.Sender   { return &benchSender{} }
 func (t *benchTSDB) GenerateMetrics(i int) {}
 func (t *benchTSDB) Metric(i int) (m i.Metric, err error) {
 	return t.metric, nil
@@ -429,7 +431,7 @@ func BenchmarkLoop(b *testing.B) {
 		&benchSender{},
 	}
 
-	go loop(tsdb, senders, 1000, tickerChan)
+	go Loop(tsdb, senders, 1000, tickerChan)
 	for n := 0; n < b.N; n++ {
 		tickerChan <- timeNow
 	}

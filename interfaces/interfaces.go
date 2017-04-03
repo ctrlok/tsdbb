@@ -20,6 +20,7 @@ type Metric interface {
 type TSDB interface {
 	GenerateMetrics(int)
 	Metric(i int) (Metric, error)
+	NewSender() Sender
 }
 
 // Sender is a main interface for sending metrics

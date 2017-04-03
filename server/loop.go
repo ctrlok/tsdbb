@@ -4,7 +4,7 @@ import "time"
 import "github.com/armon/go-metrics"
 import i "github.com/ctrlok/tsdbb/interfaces"
 
-func loop(tsdb i.TSDB, senders []i.Sender, count int, tickerChan chan time.Time) (err error) {
+func Loop(tsdb i.TSDB, senders []i.Sender, count int, tickerChan chan time.Time) (err error) {
 	metricsChan := make(chan i.SendMetric, 100000) // This is best value in my benchmarks
 	// metrics := make(chan SendMetric, len(senders))
 	defer close(metricsChan)

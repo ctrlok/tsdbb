@@ -15,8 +15,7 @@
 package cmd
 
 import (
-	"fmt"
-
+	"github.com/ctrlok/tsdbb/interfaces/self"
 	"github.com/spf13/cobra"
 )
 
@@ -31,12 +30,8 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// TODO: Work your own magic here
-		fmt.Println("self called")
-		hostsFlag := cmd.Flag("hosts")
-		fmt.Printf("args: %v\n", args)
-		fmt.Printf("hosts: %v", hostsFlag.Value)
-
+		tsdb := &self.TSDB{}
+		startServer(tsdb, cmd, args)
 	},
 }
 
