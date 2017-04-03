@@ -15,10 +15,28 @@
 			"revisionTime": "2016-10-29T20:57:26Z"
 		},
 		{
+			"checksumSHA1": "40vJyUB4ezQSn/NSadsKEOrudMc=",
+			"path": "github.com/inconshreveable/mousetrap",
+			"revision": "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75",
+			"revisionTime": "2014-10-17T20:07:13Z"
+		},
+		{
 			"checksumSHA1": "LuFv4/jlrmFNnDb/5SCSEPAM9vU=",
 			"path": "github.com/pmezard/go-difflib/difflib",
 			"revision": "792786c7400a136282c1664665ae0a8db921c6c2",
 			"revisionTime": "2016-01-10T10:55:54Z"
+		},
+		{
+			"checksumSHA1": "Dt7EbV7tu5VQGY1T4TEQS3+1kuA=",
+			"path": "github.com/spf13/cobra",
+			"revision": "7aeaa2cce6ae7e18d2a6ee597b60ee137e999bd9",
+			"revisionTime": "2017-04-02T14:14:34Z"
+		},
+		{
+			"checksumSHA1": "WZHF26m8UJ3WU5//TIDeUC3xs4o=",
+			"path": "github.com/spf13/pflag",
+			"revision": "d16db1e50e33dff1b6cdf37596cef36742128670",
+			"revisionTime": "2017-03-27T14:13:44Z"
 		},
 		{
 			"checksumSHA1": "JXUVA1jky8ZX8w09p2t5KLs97Nc=",
