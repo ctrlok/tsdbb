@@ -42,8 +42,6 @@ func (s *Sender) GetHost() string {
 	return s.host
 }
 
-func (s *Sender) Connect() error { return nil }
-
 func (s *Sender) Send(metric interfaces.SendMetric) error {
 	return nil
 }

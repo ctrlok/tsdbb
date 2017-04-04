@@ -30,6 +30,5 @@ type TSDB interface {
 // Sender is a main interface for sending metrics
 type Sender interface {
 	GetHost() string
-	Connect() error
 	Send(SendMetric) error
 }
