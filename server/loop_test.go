@@ -16,7 +16,6 @@ type testSender struct {
 	host   string
 }
 
-func (t *testSender) SetHost(string)  { return }
 func (t *testSender) GetHost() string { return t.host }
 func (t *testSender) Connect() error  { return nil }
 func (t *testSender) Send(s i.SendMetric) error {
@@ -325,7 +324,6 @@ type benchSender struct {
 	host string
 }
 
-func (t *benchSender) SetHost(string)            { return }
 func (t *benchSender) GetHost() string           { return t.host }
 func (t *benchSender) Connect() error            { return nil }
 func (t *benchSender) Send(s i.SendMetric) error { return nil }

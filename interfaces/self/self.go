@@ -1,7 +1,11 @@
 package self
 
-import "fmt"
-import "github.com/ctrlok/tsdbb/interfaces"
+import (
+	"fmt"
+	"net/url"
+
+	"github.com/ctrlok/tsdbb/interfaces"
+)
 
 type Metric struct{}
 
@@ -21,8 +25,10 @@ func (t *PregeneratedMetrics) Metric(i int) (interfaces.Metric, error) {
 
 type TSDB struct{}
 
-func (t *TSDB) NewSender() interfaces.Sender {
-	return &Sender{}
+func (t *TSDB) NewSender(uri *url.URL) (interfaces.Sender, error) {
+	sender := &Sender{}
+	sender.host = uri.Host
+	return sender, nil
 }
 func (t *TSDB) GenerateMetrics(i int) interfaces.PregeneratedMetrics {
 	return &PregeneratedMetrics{max: i}
@@ -30,10 +36,6 @@ func (t *TSDB) GenerateMetrics(i int) interfaces.PregeneratedMetrics {
 
 type Sender struct {
 	host string
-}
-
-func (s *Sender) SetHost(host string) {
-	s.host = host
 }
 
 func (s *Sender) GetHost() string {

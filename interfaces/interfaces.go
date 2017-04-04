@@ -1,6 +1,7 @@
 package interfaces
 
 import (
+	"net/url"
 	"time"
 )
 
@@ -23,12 +24,11 @@ type PregeneratedMetrics interface {
 
 type TSDB interface {
 	GenerateMetrics(int) PregeneratedMetrics
-	NewSender() Sender
+	NewSender(*url.URL) (Sender, error)
 }
 
 // Sender is a main interface for sending metrics
 type Sender interface {
-	SetHost(string)
 	GetHost() string
 	Connect() error
 	Send(SendMetric) error

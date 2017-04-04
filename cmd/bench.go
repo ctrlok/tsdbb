@@ -15,9 +15,11 @@
 package cmd
 
 import (
+	"net/url"
 	"time"
 
 	"github.com/ctrlok/tsdbb/interfaces"
+	"github.com/ctrlok/tsdbb/server"
 	"github.com/spf13/cobra"
 )
 
@@ -50,29 +52,29 @@ func init() {
 }
 
 func parseBenchArgsAndFlags(tsdb interfaces.TSDB, cmd *cobra.Command, args []string) (err error) {
-	tsdb.GenerateMetrics(maxMetrics)
-	// senders, err := generateSenders(tsdb, args)
-	// if err != nil {
-	// 	return err
-	// }
-	// server.StartServer(tsdb, senders, startCount, tick)
+	pregenerated := tsdb.GenerateMetrics(maxMetrics)
+	senders, err := generateSenders(tsdb, args)
+	if err != nil {
+		return err
+	}
+	server.StartServer(pregenerated, senders, startCount, tick)
 	return nil
 }
 
-// func generateSenders(tsdb interfaces.TSDB, args []string) ([]interfaces.Sender, error) {
-// 	array := []interfaces.Sender{}
-// 	for _, senderString := range args {
-// 		uri, err := url.Parse(senderString)
-// 		if err != nil {
-// 			return array, err
-// 		}
-// 		for n := 0; n < parallel; n++ {
-// 			sender, err := tsdb.NewSender(uri)
-// 			if err != nil {
-// 				return array, err
-// 			}
-// 			array := append(array, sender)
-// 		}
-// 	}
-// 	return array, nil
-// }
+func generateSenders(tsdb interfaces.TSDB, args []string) ([]interfaces.Sender, error) {
+	array := []interfaces.Sender{}
+	for _, senderString := range args {
+		uri, err := url.Parse(senderString)
+		if err != nil {
+			return array, err
+		}
+		for n := 0; n < parallel; n++ {
+			sender, err := tsdb.NewSender(uri)
+			if err != nil {
+				return array, err
+			}
+			array = append(array, sender)
+		}
+	}
+	return array, nil
+}
