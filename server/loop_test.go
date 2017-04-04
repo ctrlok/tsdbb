@@ -30,13 +30,11 @@ func (m *testMetric) Name() string {
 	return ""
 }
 
-type testTSDB struct {
+type testPregeneratedMetrics struct {
 	getMetric int
 }
 
-func (t *testTSDB) NewSender() i.Sender   { return &testSender{} }
-func (t *testTSDB) GenerateMetrics(i int) {}
-func (t *testTSDB) Metric(i int) (m i.Metric, err error) {
+func (t *testPregeneratedMetrics) Metric(i int) (m i.Metric, err error) {
 	if i >= 10 {
 		err = fmt.Errorf("bigger that exist")
 		return &testMetric{}, err
@@ -77,23 +75,23 @@ func TestSenderInstance(t *testing.T) {
 
 func TestSendMetricsToChannel(t *testing.T) {
 	var err error
-	var tsdb *testTSDB
+	var pregeneratedMetrics *testPregeneratedMetrics
 	var metrics chan i.SendMetric
 	time := time.Now()
 
 	metrics = make(chan i.SendMetric, 10)
-	tsdb = &testTSDB{}
-	err = sendMetricsToChannel(tsdb, 2, metrics, time)
+	pregeneratedMetrics = &testPregeneratedMetrics{}
+	err = sendMetricsToChannel(pregeneratedMetrics, 2, metrics, time)
 	assert.NoError(t, err)
-	assert.Equal(t, 2, tsdb.getMetric)
+	assert.Equal(t, 2, pregeneratedMetrics.getMetric)
 	assert.Equal(t, 2, len(metrics))
 	close(metrics)
 
 	metrics = make(chan i.SendMetric, 20)
-	tsdb = &testTSDB{}
-	err = sendMetricsToChannel(tsdb, 19, metrics, time)
+	pregeneratedMetrics = &testPregeneratedMetrics{}
+	err = sendMetricsToChannel(pregeneratedMetrics, 19, metrics, time)
 	assert.Error(t, err)
-	assert.Equal(t, 10, tsdb.getMetric)
+	assert.Equal(t, 10, pregeneratedMetrics.getMetric)
 	assert.Equal(t, 10, len(metrics))
 	close(metrics)
 
@@ -115,7 +113,7 @@ func TestCheckCount(t *testing.T) {
 func TestTickerLoop_Basic(t *testing.T) {
 	var err error
 	timeNow := time.Now()
-	tsdb := testTSDB{}
+	pregeneratedMetrics := testPregeneratedMetrics{}
 	metrics := make(chan i.SendMetric, 100)
 	tickerChan := make(chan time.Time, 100)
 	countChan := make(chan countStruct, 100)
@@ -123,16 +121,16 @@ func TestTickerLoop_Basic(t *testing.T) {
 	tickerChan <- timeNow
 	close(tickerChan)
 
-	err = tickerLoop(&tsdb, metrics, tickerChan, countChan, 2)
+	err = tickerLoop(&pregeneratedMetrics, metrics, tickerChan, countChan, 2)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(metrics))
-	assert.Equal(t, 2, tsdb.getMetric)
+	assert.Equal(t, 2, pregeneratedMetrics.getMetric)
 }
 
 func TestTickerLoop_TwoTicks(t *testing.T) {
 	var err error
 	timeNow := time.Now()
-	tsdb := testTSDB{}
+	pregeneratedMetrics := testPregeneratedMetrics{}
 	metrics := make(chan i.SendMetric, 100)
 	tickerChan := make(chan time.Time, 100)
 	countChan := make(chan countStruct, 100)
@@ -141,16 +139,16 @@ func TestTickerLoop_TwoTicks(t *testing.T) {
 	tickerChan <- timeNow
 	close(tickerChan)
 
-	err = tickerLoop(&tsdb, metrics, tickerChan, countChan, 4)
+	err = tickerLoop(&pregeneratedMetrics, metrics, tickerChan, countChan, 4)
 	assert.NoError(t, err)
 	assert.Equal(t, 8, len(metrics))
-	assert.Equal(t, 8, tsdb.getMetric)
+	assert.Equal(t, 8, pregeneratedMetrics.getMetric)
 }
 
 func TestTickerLoop_ErrorOutOfIndex(t *testing.T) {
 	var err error
 	timeNow := time.Now()
-	tsdb := testTSDB{}
+	pregeneratedMetrics := testPregeneratedMetrics{}
 	metrics := make(chan i.SendMetric, 100)
 	tickerChan := make(chan time.Time, 100)
 	countChan := make(chan countStruct, 100)
@@ -159,16 +157,16 @@ func TestTickerLoop_ErrorOutOfIndex(t *testing.T) {
 	tickerChan <- timeNow
 	close(tickerChan)
 
-	err = tickerLoop(&tsdb, metrics, tickerChan, countChan, 12)
+	err = tickerLoop(&pregeneratedMetrics, metrics, tickerChan, countChan, 12)
 	assert.Error(t, err)
 	assert.Equal(t, 10, len(metrics))
-	assert.Equal(t, 10, tsdb.getMetric)
+	assert.Equal(t, 10, pregeneratedMetrics.getMetric)
 }
 
 func TestTickerLoop_NoErrorOutOfIndex(t *testing.T) {
 	var err error
 	timeNow := time.Now()
-	tsdb := testTSDB{}
+	pregeneratedMetrics := testPregeneratedMetrics{}
 	metrics := make(chan i.SendMetric, 100)
 	tickerChan := make(chan time.Time, 100)
 	countChan := make(chan countStruct, 100)
@@ -176,16 +174,16 @@ func TestTickerLoop_NoErrorOutOfIndex(t *testing.T) {
 	tickerChan <- timeNow
 	tickerChan <- timeNow
 	close(tickerChan)
-	err = tickerLoop(&tsdb, metrics, tickerChan, countChan, 6)
+	err = tickerLoop(&pregeneratedMetrics, metrics, tickerChan, countChan, 6)
 	assert.NoError(t, err)
 	assert.Equal(t, 12, len(metrics))
-	assert.Equal(t, 12, tsdb.getMetric)
+	assert.Equal(t, 12, pregeneratedMetrics.getMetric)
 }
 
 func TestTickerLoop_countUp1(t *testing.T) {
 	var err error
 	timeNow := time.Now()
-	tsdb := testTSDB{}
+	pregeneratedMetrics := testPregeneratedMetrics{}
 	metrics := make(chan i.SendMetric, 100)
 	tickerChan := make(chan time.Time, 100)
 	countChan := make(chan countStruct, 100)
@@ -194,17 +192,17 @@ func TestTickerLoop_countUp1(t *testing.T) {
 	tickerChan <- timeNow
 	countChan <- countStruct{count: 10, step: 2}
 	close(tickerChan)
-	err = tickerLoop(&tsdb, metrics, tickerChan, countChan, 2)
+	err = tickerLoop(&pregeneratedMetrics, metrics, tickerChan, countChan, 2)
 	assert.NoError(t, err)
 	// tick1: default 2 + 2 step = 4, tick2: 4 + 2 = 6, tick1 + tick2:
 	assert.Equal(t, 10, len(metrics))
-	assert.Equal(t, 10, tsdb.getMetric)
+	assert.Equal(t, 10, pregeneratedMetrics.getMetric)
 }
 
 func TestTickerLoop_countUp2(t *testing.T) {
 	var err error
 	timeNow := time.Now()
-	tsdb := testTSDB{}
+	pregeneratedMetrics := testPregeneratedMetrics{}
 	metrics := make(chan i.SendMetric, 100)
 	tickerChan := make(chan time.Time, 100)
 	countChan := make(chan countStruct, 100)
@@ -213,17 +211,17 @@ func TestTickerLoop_countUp2(t *testing.T) {
 	tickerChan <- timeNow
 	countChan <- countStruct{count: 4, step: 2}
 	close(tickerChan)
-	err = tickerLoop(&tsdb, metrics, tickerChan, countChan, 2)
+	err = tickerLoop(&pregeneratedMetrics, metrics, tickerChan, countChan, 2)
 	assert.NoError(t, err)
 	// tick1: default 2 + 2 step = 4, tick2: 4 + 0 = 4, tick1 + tick2:
 	assert.Equal(t, 8, len(metrics))
-	assert.Equal(t, 8, tsdb.getMetric)
+	assert.Equal(t, 8, pregeneratedMetrics.getMetric)
 }
 
 func TestTickerLoop_countZero(t *testing.T) {
 	var err error
 	timeNow := time.Now()
-	tsdb := testTSDB{}
+	pregeneratedMetrics := testPregeneratedMetrics{}
 	metrics := make(chan i.SendMetric, 100)
 	tickerChan := make(chan time.Time, 100)
 	countChan := make(chan countStruct, 100)
@@ -232,22 +230,22 @@ func TestTickerLoop_countZero(t *testing.T) {
 	tickerChan <- timeNow
 	countChan <- countStruct{count: 0, step: 4}
 	close(tickerChan)
-	err = tickerLoop(&tsdb, metrics, tickerChan, countChan, 4)
+	err = tickerLoop(&pregeneratedMetrics, metrics, tickerChan, countChan, 4)
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(metrics))
-	assert.Equal(t, 0, tsdb.getMetric)
+	assert.Equal(t, 0, pregeneratedMetrics.getMetric)
 }
 
 func TestTickerLoop_countGoroutine(t *testing.T) {
 	done := make(chan error)
 	timeNow := time.Now()
-	tsdb := testTSDB{}
+	pregeneratedMetrics := testPregeneratedMetrics{}
 	metrics := make(chan i.SendMetric, 100)
 	tickerChan := make(chan time.Time, 100)
 	countChan := make(chan countStruct, 100)
 
 	go func() {
-		done <- tickerLoop(&tsdb, metrics, tickerChan, countChan, 4)
+		done <- tickerLoop(&pregeneratedMetrics, metrics, tickerChan, countChan, 4)
 	}()
 
 	tickerChan <- timeNow
@@ -258,12 +256,12 @@ func TestTickerLoop_countGoroutine(t *testing.T) {
 	time.Sleep(1 * time.Millisecond)
 	assert.Zero(t, len(done))
 	assert.Equal(t, 4, len(metrics))
-	assert.Equal(t, 4, tsdb.getMetric)
+	assert.Equal(t, 4, pregeneratedMetrics.getMetric)
 
 	for len(metrics) != 0 {
 		<-metrics
 	}
-	tsdb.getMetric = 0
+	pregeneratedMetrics.getMetric = 0
 
 	countChan <- countStruct{count: 8, step: 2}
 	tickerChan <- timeNow
@@ -274,12 +272,12 @@ func TestTickerLoop_countGoroutine(t *testing.T) {
 	time.Sleep(1 * time.Millisecond)
 	assert.Zero(t, len(done))
 	assert.Equal(t, 6, len(metrics))
-	assert.Equal(t, 6, tsdb.getMetric)
+	assert.Equal(t, 6, pregeneratedMetrics.getMetric)
 
 	for len(metrics) != 0 {
 		<-metrics
 	}
-	tsdb.getMetric = 0
+	pregeneratedMetrics.getMetric = 0
 
 	tickerChan <- timeNow
 	for len(tickerChan) != 0 {
@@ -289,12 +287,12 @@ func TestTickerLoop_countGoroutine(t *testing.T) {
 	time.Sleep(1 * time.Millisecond)
 	assert.Zero(t, len(done))
 	assert.Equal(t, 8, len(metrics))
-	assert.Equal(t, 8, tsdb.getMetric)
+	assert.Equal(t, 8, pregeneratedMetrics.getMetric)
 
 	for len(metrics) != 0 {
 		<-metrics
 	}
-	tsdb.getMetric = 0
+	pregeneratedMetrics.getMetric = 0
 
 	tickerChan <- timeNow
 	for len(tickerChan) != 0 {
@@ -304,7 +302,7 @@ func TestTickerLoop_countGoroutine(t *testing.T) {
 	time.Sleep(1 * time.Millisecond)
 	assert.Zero(t, len(done))
 	assert.Equal(t, 8, len(metrics))
-	assert.Equal(t, 8, tsdb.getMetric)
+	assert.Equal(t, 8, pregeneratedMetrics.getMetric)
 
 	close(tickerChan)
 }
@@ -336,20 +334,18 @@ type benchMetric struct{}
 
 func (m *benchMetric) Name() string { return "" }
 
-type benchTSDB struct {
+type benchPregeneratedMetrics struct {
 	metric i.Metric
 }
 
-func (t *benchTSDB) NewSender() i.Sender   { return &benchSender{} }
-func (t *benchTSDB) GenerateMetrics(i int) {}
-func (t *benchTSDB) Metric(i int) (m i.Metric, err error) {
+func (t *benchPregeneratedMetrics) Metric(i int) (m i.Metric, err error) {
 	return t.metric, nil
 }
 
 func BenchmarkSendMetricsToChannel(b *testing.B) {
 	time := time.Now()
 	metrics := make(chan i.SendMetric, 100)
-	tsdb := &benchTSDB{metric: &benchMetric{}}
+	pregeneratedMetrics := &benchPregeneratedMetrics{metric: &benchMetric{}}
 
 	go func() {
 		for {
@@ -358,7 +354,7 @@ func BenchmarkSendMetricsToChannel(b *testing.B) {
 	}()
 
 	for n := 0; n < b.N; n++ {
-		sendMetricsToChannel(tsdb, 1, metrics, time)
+		sendMetricsToChannel(pregeneratedMetrics, 1, metrics, time)
 	}
 }
 
@@ -403,7 +399,7 @@ func BenchmarkSenderInstance_MetricsInmem(b *testing.B) {
 
 func BenchmarkTickerLoop(b *testing.B) {
 	timeNow := time.Now()
-	tsdb := &benchTSDB{metric: &benchMetric{}}
+	pregeneratedMetrics := &benchPregeneratedMetrics{metric: &benchMetric{}}
 	metrics := make(chan i.SendMetric, 100)
 	countChan := make(chan countStruct, 100)
 	tickerChan := make(chan time.Time, 1)
@@ -414,7 +410,7 @@ func BenchmarkTickerLoop(b *testing.B) {
 		}
 	}()
 
-	go tickerLoop(tsdb, metrics, tickerChan, countChan, 1)
+	go tickerLoop(pregeneratedMetrics, metrics, tickerChan, countChan, 1)
 	for n := 0; n < b.N; n++ {
 		tickerChan <- timeNow
 	}
@@ -422,8 +418,9 @@ func BenchmarkTickerLoop(b *testing.B) {
 
 func BenchmarkLoop(b *testing.B) {
 	timeNow := time.Now()
-	tsdb := &benchTSDB{metric: &benchMetric{}}
+	pregeneratedMetrics := &benchPregeneratedMetrics{metric: &benchMetric{}}
 	tickerChan := make(chan time.Time)
+	controlChan := make(chan countStruct)
 	senders := []i.Sender{
 		&benchSender{},
 		&benchSender{},
@@ -431,7 +428,7 @@ func BenchmarkLoop(b *testing.B) {
 		&benchSender{},
 	}
 
-	go Loop(tsdb, senders, 1000, tickerChan)
+	go Loop(pregeneratedMetrics, senders, 1000, tickerChan, controlChan)
 	for n := 0; n < b.N; n++ {
 		tickerChan <- timeNow
 	}

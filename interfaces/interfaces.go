@@ -16,10 +16,13 @@ type Metric interface {
 	Name() string
 }
 
-// TSDB can Generate metrics into internal format and show metric
-type TSDB interface {
-	GenerateMetrics(int)
+// PregeneratedMetrics can Generate metrics into internal format and show metric
+type PregeneratedMetrics interface {
 	Metric(i int) (Metric, error)
+}
+
+type TSDB interface {
+	GenerateMetrics(int) PregeneratedMetrics
 	NewSender() Sender
 }
 

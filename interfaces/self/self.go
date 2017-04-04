@@ -7,20 +7,25 @@ type Metric struct{}
 
 func (m *Metric) Name() string { return "" }
 
-type TSDB struct {
+type PregeneratedMetrics struct {
 	max    int
 	metric Metric
 }
 
-func (t *TSDB) NewSender() interfaces.Sender {
-	return &Sender{}
-}
-func (t *TSDB) GenerateMetrics(i int) { t.max = i }
-func (t *TSDB) Metric(i int) (interfaces.Metric, error) {
+func (t *PregeneratedMetrics) Metric(i int) (interfaces.Metric, error) {
 	if i > t.max {
 		return &t.metric, fmt.Errorf("error")
 	}
 	return &t.metric, nil
+}
+
+type TSDB struct{}
+
+func (t *TSDB) NewSender() interfaces.Sender {
+	return &Sender{}
+}
+func (t *TSDB) GenerateMetrics(i int) interfaces.PregeneratedMetrics {
+	return &PregeneratedMetrics{max: i}
 }
 
 type Sender struct {

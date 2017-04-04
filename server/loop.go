@@ -4,7 +4,7 @@ import "time"
 import "github.com/armon/go-metrics"
 import i "github.com/ctrlok/tsdbb/interfaces"
 
-func Loop(tsdb i.TSDB, senders []i.Sender, count int, tickerChan chan time.Time) (err error) {
+func Loop(tsdb i.PregeneratedMetrics, senders []i.Sender, count int, tickerChan <-chan time.Time, countChan chan countStruct) (err error) {
 	metricsChan := make(chan i.SendMetric, 100000) // This is best value in my benchmarks
 	// metrics := make(chan SendMetric, len(senders))
 	defer close(metricsChan)
@@ -15,12 +15,7 @@ func Loop(tsdb i.TSDB, senders []i.Sender, count int, tickerChan chan time.Time)
 			}
 		}(sender)
 	}
-	for t := range tickerChan {
-		err = sendMetricsToChannel(tsdb, count, metricsChan, t)
-		if err != nil {
-			return err
-		}
-	}
+	err = tickerLoop(tsdb, metricsChan, tickerChan, countChan, count)
 	return
 }
 
@@ -42,7 +37,7 @@ type countStruct struct {
 	step  int
 }
 
-func tickerLoop(tsdb i.TSDB, metrics chan i.SendMetric, tickerChan chan time.Time, countChan chan countStruct, count int) (err error) {
+func tickerLoop(tsdb i.PregeneratedMetrics, metrics chan i.SendMetric, tickerChan <-chan time.Time, countChan chan countStruct, count int) (err error) {
 	newCount := countStruct{count: count, step: 0}
 	for t := range tickerChan {
 		select {
@@ -80,7 +75,7 @@ func checkCount(initialCount int, newCount *countStruct) int {
 	return tmpCount
 }
 
-func sendMetricsToChannel(tsdb i.TSDB, count int, metrics chan i.SendMetric, t time.Time) (err error) {
+func sendMetricsToChannel(tsdb i.PregeneratedMetrics, count int, metrics chan i.SendMetric, t time.Time) (err error) {
 	for n := 0; n < count; n++ {
 		metric, err := tsdb.Metric(n)
 		if err != nil {
