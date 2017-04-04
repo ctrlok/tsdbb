@@ -4,7 +4,7 @@ import "time"
 import "github.com/armon/go-metrics"
 import i "github.com/ctrlok/tsdbb/interfaces"
 
-func Loop(tsdb i.PregeneratedMetrics, senders []i.Sender, count int, tickerChan <-chan time.Time, countChan chan countStruct) (err error) {
+func Loop(pregenerated i.PregeneratedMetrics, senders []i.Sender, count int, tickerChan <-chan time.Time, countChan chan countStruct) (err error) {
 	metricsChan := make(chan i.SendMetric, 100000) // This is best value in my benchmarks
 	// metrics := make(chan SendMetric, len(senders))
 	defer close(metricsChan)
@@ -15,7 +15,7 @@ func Loop(tsdb i.PregeneratedMetrics, senders []i.Sender, count int, tickerChan 
 			}
 		}(sender)
 	}
-	err = tickerLoop(tsdb, metricsChan, tickerChan, countChan, count)
+	err = tickerLoop(pregenerated, metricsChan, tickerChan, countChan, count)
 	return
 }
 
@@ -37,19 +37,19 @@ type countStruct struct {
 	step  int
 }
 
-func tickerLoop(tsdb i.PregeneratedMetrics, metrics chan i.SendMetric, tickerChan <-chan time.Time, countChan chan countStruct, count int) (err error) {
+func tickerLoop(pregenerated i.PregeneratedMetrics, metrics chan i.SendMetric, tickerChan <-chan time.Time, countChan chan countStruct, count int) (err error) {
 	newCount := countStruct{count: count, step: 0}
 	for t := range tickerChan {
 		select {
 		case newCount = <-countChan:
 			count = checkCount(count, &newCount)
-			err = sendMetricsToChannel(tsdb, count, metrics, t)
+			err = sendMetricsToChannel(pregenerated, count, metrics, t)
 			if err != nil {
 				return
 			}
 		default:
 			count = checkCount(count, &newCount)
-			err = sendMetricsToChannel(tsdb, count, metrics, t)
+			err = sendMetricsToChannel(pregenerated, count, metrics, t)
 			if err != nil {
 				return
 			}
@@ -75,9 +75,9 @@ func checkCount(initialCount int, newCount *countStruct) int {
 	return tmpCount
 }
 
-func sendMetricsToChannel(tsdb i.PregeneratedMetrics, count int, metrics chan i.SendMetric, t time.Time) (err error) {
+func sendMetricsToChannel(pregenerated i.PregeneratedMetrics, count int, metrics chan i.SendMetric, t time.Time) (err error) {
 	for n := 0; n < count; n++ {
-		metric, err := tsdb.Metric(n)
+		metric, err := pregenerated.Metric(n)
 		if err != nil {
 			return err
 		}
