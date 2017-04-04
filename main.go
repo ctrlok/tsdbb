@@ -15,6 +15,7 @@
 package main
 
 import "github.com/ctrlok/tsdbb/cmd"
+import _ "net/http/pprof"
 
 func main() {
 	cmd.Execute()

@@ -65,7 +65,7 @@ func TestSenderInstance(t *testing.T) {
 
 	// Don't do anything if channel was closed
 	sender = testSender{sended: 0}
-	metrics = make(chan i.SendMetric, 1)
+	metrics = make(chan i.SendMetric)
 	close(metrics)
 	senderInstance(&sender, metrics)
 	assert.Zero(t, sender.sended, "Don't do anything if channel was closed")

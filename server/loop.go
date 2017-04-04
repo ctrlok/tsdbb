@@ -1,11 +1,14 @@
 package server
 
-import "time"
-import "github.com/armon/go-metrics"
-import i "github.com/ctrlok/tsdbb/interfaces"
+import (
+	"time"
+
+	metrics "github.com/armon/go-metrics"
+	i "github.com/ctrlok/tsdbb/interfaces"
+)
 
 func Loop(pregenerated i.PregeneratedMetrics, senders []i.Sender, count int, tickerChan <-chan time.Time, countChan chan countStruct) (err error) {
-	metricsChan := make(chan i.SendMetric, 100000) // This is best value in my benchmarks
+	metricsChan := make(chan i.SendMetric, 10000000) // This is best value in my benchmarks
 	// metrics := make(chan SendMetric, len(senders))
 	defer close(metricsChan)
 	for _, sender := range senders {
@@ -25,10 +28,9 @@ func senderInstance(sender i.Sender, metricsChan chan i.SendMetric) {
 		err := sender.Send(metric)
 		if err != nil {
 			metrics.IncrCounter([]string{"sender", sender.GetHost(), "error"}, 1)
+			return
 		}
 		metrics.IncrCounter([]string{"sender", sender.GetHost(), "succes"}, 1)
-	} else {
-		return
 	}
 }
 
