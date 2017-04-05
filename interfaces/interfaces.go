@@ -9,7 +9,7 @@ import (
 // Use SendMetric.Time in Sender.Send setting time.
 type SendMetric struct {
 	Metric Metric
-	Time   time.Time
+	Time   *time.Time
 }
 
 // Metric is a main interface for metrics
@@ -30,5 +30,5 @@ type TSDB interface {
 // Sender is a main interface for sending metrics
 type Sender interface {
 	GetHost() string
-	Send(SendMetric) error
+	Send(Metric, *time.Time) error
 }

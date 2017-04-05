@@ -7,10 +7,13 @@ import (
 	i "github.com/ctrlok/tsdbb/interfaces"
 )
 
+type countStruct struct {
+	count int
+	step  int
+}
+
 func Loop(pregenerated i.PregeneratedMetrics, senders []i.Sender, count int, tickerChan <-chan time.Time, countChan chan countStruct) (err error) {
-	metricsChan := make(chan i.SendMetric, 10000000) // This is best value in my benchmarks
-	// metrics := make(chan SendMetric, len(senders))
-	defer close(metricsChan)
+	metricsChan := make(chan i.SendMetric, 3000) // This is best value in my benchmarks
 	for _, sender := range senders {
 		go func(sender i.Sender) {
 			for {
@@ -19,24 +22,49 @@ func Loop(pregenerated i.PregeneratedMetrics, senders []i.Sender, count int, tic
 		}(sender)
 	}
 	err = tickerLoop(pregenerated, metricsChan, tickerChan, countChan, count)
+	for len(metricsChan) != 0 {
+	}
 	return
 }
 
-func senderInstance(sender i.Sender, metricsChan chan i.SendMetric) {
-	metric, next := <-metricsChan
-	if next {
-		err := sender.Send(metric)
-		if err != nil {
-			metrics.IncrCounter([]string{"sender", sender.GetHost(), "error"}, 1)
-			return
+func LoopPool(pregenerated i.PregeneratedMetrics, senders chan i.Sender, count int, tickerChan <-chan time.Time, countChan chan countStruct) (err error) {
+	newCount := countStruct{count: count, step: 0}
+	for t := range tickerChan {
+		select {
+		case newCount = <-countChan:
+			count = checkCount(count, &newCount)
+			sendMetricsToPool(pregenerated, count, senders, &t)
+		default:
+			count = checkCount(count, &newCount)
+			sendMetricsToPool(pregenerated, count, senders, &t)
 		}
-		metrics.IncrCounter([]string{"sender", sender.GetHost(), "succes"}, 1)
+	}
+	return
+}
+
+func sendMetricsToPool(pregenerated i.PregeneratedMetrics, count int, senders chan i.Sender, t *time.Time) {
+	for n := 0; n < count; n++ {
+		sender := <-senders
+		go func() {
+			metrics.IncrCounter([]string{"sender", "succes"}, 1)
+			metric, _ := pregenerated.Metric(n)
+			sender.Send(metric, t)
+			senders <- sender
+		}()
 	}
 }
 
-type countStruct struct {
-	count int
-	step  int
+func senderInstance(sender i.Sender, metricsChan chan i.SendMetric) {
+	var err error
+	metric, next := <-metricsChan
+	if next {
+		err = sender.Send(metric.Metric, metric.Time)
+		if err != nil {
+			metrics.IncrCounter([]string{"e"}, 1)
+			return
+		}
+		metrics.IncrCounter([]string{"s"}, 1)
+	}
 }
 
 func tickerLoop(pregenerated i.PregeneratedMetrics, metrics chan i.SendMetric, tickerChan <-chan time.Time, countChan chan countStruct, count int) (err error) {
@@ -83,7 +111,7 @@ func sendMetricsToChannel(pregenerated i.PregeneratedMetrics, count int, metrics
 		if err != nil {
 			return err
 		}
-		metrics <- i.SendMetric{Metric: metric, Time: t}
+		metrics <- i.SendMetric{Metric: metric, Time: &t}
 	}
 	return
 }

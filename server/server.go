@@ -25,7 +25,13 @@ func StartServer(pregenerated i.PregeneratedMetrics,
 		inm = metrics.NewInmemSink(statTick, 3*statTick)
 	}
 	// TODO: send metrics to statsd, statsite, etc, change name
-	metrics.NewGlobal(metrics.DefaultConfig("service-name"), inm)
+	metricsConfig := metrics.Config{
+		ServiceName:          "s",
+		EnableHostname:       false,
+		EnableRuntimeMetrics: false,
+		EnableTypePrefix:     false,
+	}
+	metrics.NewGlobal(&metricsConfig, inm)
 
 	http.HandleFunc("/ShutDown", func(w http.ResponseWriter, r *http.Request) { shutDown(w, r, ticker) })
 	go func() {
@@ -36,6 +42,13 @@ func StartServer(pregenerated i.PregeneratedMetrics,
 	}()
 	go logFunc(statTick, inm)
 	err = Loop(pregenerated, senders, count, ticker.C, countChan)
+
+	// sendersChan := make(chan i.Sender, len(senders))
+	// for _, sender := range senders {
+	// 	sendersChan <- sender
+	// }
+
+	// err = LoopPool(pregenerated, sendersChan, count, ticker.C, countChan)
 	if err != nil {
 		Logger.Fatal(err.Error())
 	}

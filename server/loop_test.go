@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -412,23 +413,35 @@ func BenchmarkTickerLoop(b *testing.B) {
 	}
 }
 
-func BenchmarkLoop(b *testing.B) {
+// var _ = debug.SetGCPercent(-1)
+
+var m = func() error { fmt.Println("hoho"); return nil }
+
+func BenchmarkLoop_Default(b *testing.B) {
+
+}
+
+func BenchmarkLoop_Pool(b *testing.B) {
+	fmt.Printf("%v\n", b.N)
 	timeNow := time.Now()
 	pregeneratedMetrics := &benchPregeneratedMetrics{metric: &benchMetric{}}
-	tickerChan := make(chan time.Time)
 	controlChan := make(chan countStruct)
-	senders := []i.Sender{
-		&benchSender{},
-		&benchSender{},
-		&benchSender{},
-		&benchSender{},
+	pool := &sync.Pool{}
+	for i := 0; i < 400; i++ {
+		pool.Put(&benchSender{})
 	}
-
-	go Loop(pregeneratedMetrics, senders, 1000, tickerChan, controlChan)
-	for n := 0; n < b.N; n++ {
+	tickerChan := make(chan time.Time)
+	go LoopPool(pregeneratedMetrics, pool, 1000, tickerChan, controlChan)
+	for n := 0; n < 100; n++ {
 		tickerChan <- timeNow
 	}
+}
 
+func BenchmarkTest(b *testing.B) {
+	fmt.Println("send tra ta ta")
+	time.Sleep(500 * time.Millisecond)
+	fmt.Printf("%v\n", b.N)
+	fmt.Println("ta ta")
 }
 
 func BenchmarkCheckCount_lo(b *testing.B) {

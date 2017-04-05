@@ -1,6 +1,6 @@
 FROM golang
 RUN apt-get update
 RUN apt-get install -y time
-WORKDIR /go/src/github.com/ctrlok/tsdb-bench
-ADD . /go/src/github.com/ctrlok/tsdb-bench
+WORKDIR /go/src/github.com/ctrlok/tsdbb
+ADD . /go/src/github.com/ctrlok/tsdbb
 TAG ctrlok/tsdb-bench
