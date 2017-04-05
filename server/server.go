@@ -41,14 +41,14 @@ func StartServer(pregenerated i.PregeneratedMetrics,
 		}
 	}()
 	go logFunc(statTick, inm)
-	err = Loop(pregenerated, senders, count, ticker.C, countChan)
+	// err = Loop(pregenerated, senders, count, ticker.C, countChan)
 
-	// sendersChan := make(chan i.Sender, len(senders))
-	// for _, sender := range senders {
-	// 	sendersChan <- sender
-	// }
+	sendersChan := make(chan i.Sender, len(senders))
+	for _, sender := range senders {
+		sendersChan <- sender
+	}
 
-	// err = LoopPool(pregenerated, sendersChan, count, ticker.C, countChan)
+	err = LoopPool(pregenerated, sendersChan, count, ticker.C, countChan)
 	if err != nil {
 		Logger.Fatal(err.Error())
 	}
