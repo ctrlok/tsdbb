@@ -14,7 +14,7 @@ type SendMetric struct {
 
 // Metric is a main interface for metrics
 type Metric interface {
-	Name() string
+	Name() interface{}
 }
 
 // PregeneratedMetrics can Generate metrics into internal format and show metric

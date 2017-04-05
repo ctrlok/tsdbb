@@ -12,134 +12,69 @@ type countStruct struct {
 	step  int
 }
 
-func Loop(pregenerated i.PregeneratedMetrics, senders []i.Sender, count int, tickerChan <-chan time.Time, countChan chan countStruct) (err error) {
-	metricsChan := make(chan i.SendMetric, 3000) // This is best value in my benchmarks
-	for _, sender := range senders {
-		go func(sender i.Sender) {
-			for {
-				senderInstance(sender, metricsChan)
-			}
-		}(sender)
-	}
-	err = tickerLoop(pregenerated, metricsChan, tickerChan, countChan, count)
-	return
-}
-
-func LoopBench(pregenerated i.PregeneratedMetrics, senders []i.Sender, count int, tickerChan <-chan time.Time, countChan chan countStruct) (err error) {
-	metricsChan := make(chan struct{}, 3000) // This is best value in my benchmarks
-	for _, sender := range senders {
-		go func(sender i.Sender) {
-			n := 0
-			for {
-				<-metricsChan
-				n++
-				if n == 1000 {
-					metrics.IncrCounter([]string{"s"}, 1)
-					n = 0
-				}
-
-			}
-		}(sender)
-	}
-	for {
-		for i := 0; i < count; i++ {
-			metricsChan <- struct{}{}
-		}
-	}
-	return
-}
-
 type control struct {
 	start int
 	end   int
+	N     int
 	time  *time.Time
 }
 
-func LoopBench2(pregenerated i.PregeneratedMetrics, senders []i.Sender, count int, tickerChan <-chan time.Time, countChan chan countStruct) (err error) {
-	n := count / len(senders)
-	countrolChan := make(chan control, 400)
+var errorName = []string{"e"}
+var succName = []string{"s"}
+
+func loop(pregenerated i.PregeneratedMetrics, senders []i.Sender, count int, tickerChan <-chan time.Time, countChan chan countStruct) (err error) {
+	controlChan := make(chan control, 400)
 	for _, sender := range senders {
-		go func() {
-			for {
-				c := <-countrolChan
-				for i := c.start; i < c.end; i++ {
-					metric, _ := pregenerated.Metric(i)
-					sender.Send(metric, c.time)
-				}
-				metrics.IncrCounter([]string{"s"}, float32(n))
-			}
-		}()
+		go senderInstance(pregenerated, sender, controlChan)
 	}
-	for t := range tickerChan {
-		start := 0
-		var end int
-		for start < count {
-			end = start + n
-			countrolChan <- control{start: start, end: end, time: &t}
-			start = end
-		}
-	}
+	tickerLoop(count, len(senders), tickerChan, controlChan, countChan)
 	return
 }
 
-func LoopPool(pregenerated i.PregeneratedMetrics, senders chan i.Sender, count int, tickerChan <-chan time.Time, countChan chan countStruct) (err error) {
+func senderInstance(pregenerated i.PregeneratedMetrics, sender i.Sender, controlChan chan control) (err error) {
+	for c := range controlChan {
+		for i := c.start; i < c.end; i++ {
+			metric, err := pregenerated.Metric(i)
+			if err != nil {
+				return err
+			}
+			err = sender.Send(metric, c.time)
+			if err != nil {
+				metrics.IncrCounter(errorName, float32(c.N))
+			}
+		}
+		metrics.IncrCounter(succName, float32(c.N))
+	}
+	return nil
+}
+
+func tickerLoop(count, senders int, tickerChan <-chan time.Time, controlChan chan control, countChan chan countStruct) {
 	newCount := countStruct{count: count, step: 0}
 	for t := range tickerChan {
 		select {
 		case newCount = <-countChan:
-			count = checkCount(count, &newCount)
-			sendMetricsToPool(pregenerated, count, senders, &t)
 		default:
-			count = checkCount(count, &newCount)
-			sendMetricsToPool(pregenerated, count, senders, &t)
 		}
-	}
-	return
-}
-
-func sendMetricsToPool(pregenerated i.PregeneratedMetrics, count int, senders chan i.Sender, t *time.Time) {
-	for n := 0; n < count; n++ {
-		sender := <-senders
-		go func() {
-			metrics.IncrCounter([]string{"sender", "succes"}, 1)
-			metric, _ := pregenerated.Metric(n)
-			sender.Send(metric, t)
-			senders <- sender
-		}()
+		count = checkCount(count, &newCount)
+		for _, c := range splitArray(count, senders, t) {
+			controlChan <- c
+		}
 	}
 }
 
-func senderInstance(sender i.Sender, metricsChan chan i.SendMetric) {
-	var err error
-	metric, next := <-metricsChan
-	if next {
-		err = sender.Send(metric.Metric, metric.Time)
-		if err != nil {
-			metrics.IncrCounter([]string{"e"}, 1)
-			return
-		}
-		metrics.IncrCounter([]string{"s"}, 1)
+func splitArray(count, senders int, t time.Time) (array []control) {
+	if count <= 0 {
+		return
 	}
-}
-
-func tickerLoop(pregenerated i.PregeneratedMetrics, metrics chan i.SendMetric, tickerChan <-chan time.Time, countChan chan countStruct, count int) (err error) {
-	newCount := countStruct{count: count, step: 0}
-	for t := range tickerChan {
-		select {
-		case newCount = <-countChan:
-			count = checkCount(count, &newCount)
-			err = sendMetricsToChannel(pregenerated, count, metrics, t)
-			if err != nil {
-				return
-			}
-		default:
-			count = checkCount(count, &newCount)
-			err = sendMetricsToChannel(pregenerated, count, metrics, t)
-			if err != nil {
-				return
-			}
-		}
+	n := count / senders
+	var i int
+	for i = 0; i+n < count; i += n {
+		array = append(array, control{start: i, end: i + n, N: n, time: &t})
 	}
+	if i == count {
+		return
+	}
+	array = append(array, control{start: i, end: count, N: count - i, time: &t})
 	return
 }
 
@@ -158,15 +93,4 @@ func checkCount(initialCount int, newCount *countStruct) int {
 		return newCount.count
 	}
 	return tmpCount
-}
-
-func sendMetricsToChannel(pregenerated i.PregeneratedMetrics, count int, metrics chan i.SendMetric, t time.Time) (err error) {
-	for n := 0; n < count; n++ {
-		metric, err := pregenerated.Metric(n)
-		if err != nil {
-			return err
-		}
-		metrics <- i.SendMetric{Metric: metric, Time: &t}
-	}
-	return
 }
