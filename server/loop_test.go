@@ -24,7 +24,7 @@ func (t *testSender) Send(metric i.Metric, time *time.Time) error {
 
 type testMetric struct{}
 
-func (m *testMetric) Name() interface{} {
+func (m *testMetric) Internal() interface{} {
 	return ""
 }
 
@@ -216,12 +216,12 @@ type benchSender struct {
 	host string
 }
 
-func (t *benchSender) GetHost() string           { return t.host }
-func (t *benchSender) Send(s i.SendMetric) error { return nil }
+func (t *benchSender) GetHost() string                 { return t.host }
+func (t *benchSender) Send(i.Metric, *time.Time) error { return nil }
 
 type benchMetric struct{}
 
-func (m *benchMetric) Name() interface{} { return "" }
+func (m *benchMetric) Internal() interface{} { return "" }
 
 type benchPregeneratedMetrics struct {
 	metric i.Metric

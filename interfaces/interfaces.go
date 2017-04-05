@@ -5,16 +5,9 @@ import (
 	"time"
 )
 
-// SendMetric is a struct which contain Metric and time of current tick.
-// Use SendMetric.Time in Sender.Send setting time.
-type SendMetric struct {
-	Metric Metric
-	Time   *time.Time
-}
-
 // Metric is a main interface for metrics
 type Metric interface {
-	Name() interface{}
+	Internal() interface{}
 }
 
 // PregeneratedMetrics can Generate metrics into internal format and show metric

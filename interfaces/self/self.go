@@ -10,7 +10,7 @@ import (
 
 type Metric struct{}
 
-func (m *Metric) Name() interface{} { return "" }
+func (m *Metric) Internal() interface{} { return "" }
 
 type PregeneratedMetrics struct {
 	max    int
