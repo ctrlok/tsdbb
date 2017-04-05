@@ -22,7 +22,62 @@ func Loop(pregenerated i.PregeneratedMetrics, senders []i.Sender, count int, tic
 		}(sender)
 	}
 	err = tickerLoop(pregenerated, metricsChan, tickerChan, countChan, count)
-	for len(metricsChan) != 0 {
+	return
+}
+
+func LoopBench(pregenerated i.PregeneratedMetrics, senders []i.Sender, count int, tickerChan <-chan time.Time, countChan chan countStruct) (err error) {
+	metricsChan := make(chan struct{}, 3000) // This is best value in my benchmarks
+	for _, sender := range senders {
+		go func(sender i.Sender) {
+			n := 0
+			for {
+				<-metricsChan
+				n++
+				if n == 1000 {
+					metrics.IncrCounter([]string{"s"}, 1)
+					n = 0
+				}
+
+			}
+		}(sender)
+	}
+	for {
+		for i := 0; i < count; i++ {
+			metricsChan <- struct{}{}
+		}
+	}
+	return
+}
+
+type control struct {
+	start int
+	end   int
+	time  *time.Time
+}
+
+func LoopBench2(pregenerated i.PregeneratedMetrics, senders []i.Sender, count int, tickerChan <-chan time.Time, countChan chan countStruct) (err error) {
+	n := count / len(senders)
+	countrolChan := make(chan control, 400)
+	for _, sender := range senders {
+		go func() {
+			for {
+				c := <-countrolChan
+				for i := c.start; i < c.end; i++ {
+					metric, _ := pregenerated.Metric(i)
+					sender.Send(metric, c.time)
+				}
+				metrics.IncrCounter([]string{"s"}, float32(n))
+			}
+		}()
+	}
+	for t := range tickerChan {
+		start := 0
+		var end int
+		for start < count {
+			end = start + n
+			countrolChan <- control{start: start, end: end, time: &t}
+			start = end
+		}
 	}
 	return
 }

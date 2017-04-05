@@ -42,13 +42,14 @@ func StartServer(pregenerated i.PregeneratedMetrics,
 	}()
 	go logFunc(statTick, inm)
 	// err = Loop(pregenerated, senders, count, ticker.C, countChan)
+	err = LoopBench2(pregenerated, senders, count, ticker.C, countChan)
 
-	sendersChan := make(chan i.Sender, len(senders))
-	for _, sender := range senders {
-		sendersChan <- sender
-	}
+	// sendersChan := make(chan i.Sender, len(senders))
+	// for _, sender := range senders {
+	// 	sendersChan <- sender
+	// }
 
-	err = LoopPool(pregenerated, sendersChan, count, ticker.C, countChan)
+	// err = LoopPool(pregenerated, sendersChan, count, ticker.C, countChan)
 	if err != nil {
 		Logger.Fatal(err.Error())
 	}
@@ -61,7 +62,7 @@ func logFunc(tick time.Duration, inm MetricSink) {
 	for range ticker.C {
 		for _, metric := range inm.Data() {
 			for k, v := range metric.Counters {
-				Logger.Info(fmt.Sprintf("%s: %#v", k, v.Count))
+				Logger.Info(fmt.Sprintf("%s: %f", k, v.Sum))
 			}
 			// for k, v := range metric.Gauges {
 			// 	logger.Info(fmt.Sprintf("%s: %v", k, v))
