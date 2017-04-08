@@ -4,10 +4,12 @@ import (
 	"bufio"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/url"
 	"time"
 
 	"github.com/ctrlok/tsdbb/interfaces"
+	"github.com/davecgh/go-spew/spew"
 )
 
 // Metric is a
@@ -68,33 +70,38 @@ func (t *TSDB) GenerateMetrics(i int) interfaces.PregeneratedMetrics {
 
 // NewSender will create new sender
 func (t *TSDB) NewSender(uri *url.URL) (s interfaces.Sender, err error) {
+	sender := Sender{}
 	if t.DevNull {
-		return t.newSenderNull(uri)
+		// sender.f, _ = os.OpenFile("/tmp/metricTEst", os.O_RDWR, 0755)
+		sender.f = ioutil.Discard
+		sender.w = bufio.NewWriter(sender.f)
+		return &sender, nil
 	}
-	return t.newSenderNull(uri)
-}
-func (t *TSDB) newSenderNull(uri *url.URL) (s interfaces.Sender, err error) {
-	var sender SenderNull
-	// sender.f, _ = os.OpenFile("/tmp/metricTEst", os.O_RDWR, 0755)
-	sender.f = ioutil.Discard
+	addr, err := net.ResolveTCPAddr(uri.Scheme, uri.Host)
+	if err != nil {
+		return nil, err
+	}
+	conn, err := net.DialTCP(uri.Scheme, nil, addr)
+	spew.Dump(conn)
+	if err != nil {
+		return nil, err
+	}
+	sender.f = conn
 	sender.w = bufio.NewWriter(sender.f)
-	return &sender, nil
+	return &sender, err
 }
 
-// func (t *TSDB) newSenderUri(uri *url.URL) (s interfaces.Sender, err error) {
-// }
-
-// SenderNull is a sender instance.
-type SenderNull struct {
-	f      io.Writer
+// Sender is a sender instance.
+type Sender struct {
 	w      *bufio.Writer
+	f      io.Writer
 	prefix []byte
 
 	host string
 }
 
 // Send is a method for sending messages. Work only with internal Metric
-func (s *SenderNull) Send(metric interfaces.Metric, t *time.Time) (err error) {
+func (s *Sender) Send(metric interfaces.Metric, t *time.Time) (err error) {
 	m := metric.(*Metric)
 	_, err = s.w.Write(s.prefix)
 	if err != nil {
@@ -120,6 +127,6 @@ func (s *SenderNull) Send(metric interfaces.Metric, t *time.Time) (err error) {
 }
 
 // GetHost will return host of sender
-func (s *SenderNull) GetHost() string {
+func (s *Sender) GetHost() string {
 	return s.host
 }
