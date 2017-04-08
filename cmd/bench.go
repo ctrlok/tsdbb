@@ -1,17 +1,3 @@
-// Copyright © 2017 NAME HERE <EMAIL ADDRESS>
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package cmd
 
 import (
@@ -22,10 +8,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"unsafe"
-
 	"github.com/ctrlok/tsdbb/interfaces"
-	"github.com/ctrlok/tsdbb/interfaces/graphite"
 	"github.com/ctrlok/tsdbb/server"
 	"github.com/spf13/cobra"
 )
@@ -42,20 +25,15 @@ var statTick time.Duration
 var benchCmd = &cobra.Command{
 	Use:   "bench",
 	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Long:  ``,
 }
 
 func init() {
 	RootCmd.AddCommand(benchCmd)
 	benchCmd.PersistentFlags().IntVarP(&startCount, "start-count", "c", 1000, "Start count of metrics which will be send")
 	benchCmd.PersistentFlags().IntVarP(&parallel, "parallel", "p", 6, "count of workers for each server in args")
-	benchCmd.PersistentFlags().DurationVarP(&tick, "tick", "t", 10*time.Second, "retention period")
-	benchCmd.PersistentFlags().IntVar(&maxMetrics, "maximum-metrics", 10000000, "maximum of metrics, which would be sended for one tick")
+	benchCmd.PersistentFlags().DurationVarP(&tick, "tick", "t", 1*time.Second, "retention period")
+	benchCmd.PersistentFlags().IntVar(&maxMetrics, "maximum-metrics", 100000000, "maximum of metrics, which would be sended for one tick")
 	benchCmd.PersistentFlags().BoolVar(&statDisable, "statistics-disable", false, "disable internal metrics")
 	benchCmd.PersistentFlags().DurationVar(&statTick, "statictics-tick", tick, "duration for internal statistics agregation (Default: same as --tick)")
 	benchCmd.PersistentFlags().StringVarP(&listenURL, "listen", "l", "127.0.0.1:8080", "set host:port for listening. Examples: 9090, :9090, 127.0.0.1:9090, 0.0.0.0:80")
@@ -66,8 +44,7 @@ func startServer(tsdb interfaces.TSDB, cmd *cobra.Command, args []string) (err e
 
 	tStart := time.Now().UnixNano()
 	pregenerated := tsdb.GenerateMetrics(maxMetrics)
-	ssize := int(unsafe.Sizeof(*pregenerated.(*graphite.PregeneratedMetricsInt)))
-	server.Logger.Info("Metrics generated", zap.Int("timer_ns", int((time.Now().UnixNano()-tStart)/1000000)), zap.Int("size_bytest", ssize))
+	server.Logger.Info("Metrics generated", zap.Int("timer_ns", int((time.Now().UnixNano()-tStart)/1000000)))
 	senders, err := generateSenders(tsdb, args)
 	if err != nil {
 		server.Logger.Error(err.Error())
