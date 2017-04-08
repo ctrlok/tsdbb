@@ -55,7 +55,7 @@ func logFunc(tick time.Duration, inm MetricSink) {
 	for range ticker.C {
 		for _, metric := range inm.Data() {
 			for k, v := range metric.Counters {
-				Logger.Info(fmt.Sprintf("%s: %f", k, v.Sum))
+				Logger.Info(fmt.Sprintf("%s: %f, %s", k, v.Sum, v.LastUpdated.Format("15:04:05")))
 			}
 			// for k, v := range metric.Gauges {
 			// 	logger.Info(fmt.Sprintf("%s: %v", k, v))

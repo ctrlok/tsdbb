@@ -42,6 +42,7 @@ func senderInstance(pregenerated i.PregeneratedMetrics, sender i.Sender, control
 			if err != nil {
 				metrics.IncrCounter(errorName, float32(c.N))
 			}
+			// metrics.IncrCounter([]string{"real_succ"}, 1)
 		}
 		metrics.IncrCounter(succName, float32(c.N))
 	}

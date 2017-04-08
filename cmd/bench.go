@@ -20,7 +20,12 @@ import (
 	"strconv"
 	"time"
 
+	"go.uber.org/zap"
+
+	"unsafe"
+
 	"github.com/ctrlok/tsdbb/interfaces"
+	"github.com/ctrlok/tsdbb/interfaces/graphite"
 	"github.com/ctrlok/tsdbb/server"
 	"github.com/spf13/cobra"
 )
@@ -59,7 +64,10 @@ func init() {
 
 func startServer(tsdb interfaces.TSDB, cmd *cobra.Command, args []string) (err error) {
 
+	tStart := time.Now().UnixNano()
 	pregenerated := tsdb.GenerateMetrics(maxMetrics)
+	ssize := int(unsafe.Sizeof(*pregenerated.(*graphite.PregeneratedMetricsInt)))
+	server.Logger.Info("Metrics generated", zap.Int("timer_ns", int((time.Now().UnixNano()-tStart)/1000000)), zap.Int("size_bytest", ssize))
 	senders, err := generateSenders(tsdb, args)
 	if err != nil {
 		server.Logger.Error(err.Error())
