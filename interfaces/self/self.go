@@ -3,7 +3,6 @@ package self
 import (
 	"fmt"
 	"net/url"
-	"time"
 
 	"github.com/ctrlok/tsdbb/interfaces"
 )
@@ -43,6 +42,6 @@ func (s *Sender) GetHost() string {
 	return s.host
 }
 
-func (s *Sender) Send(metric interfaces.Metric, time *time.Time) error {
+func (s *Sender) Send(metric interfaces.Metric, time []byte) error {
 	return nil
 }

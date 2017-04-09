@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net"
 	"net/url"
-	"time"
 
 	"github.com/ctrlok/tsdbb/interfaces"
 	"github.com/davecgh/go-spew/spew"
@@ -101,7 +100,7 @@ type Sender struct {
 }
 
 // Send is a method for sending messages. Work only with internal Metric
-func (s *Sender) Send(metric interfaces.Metric, t *time.Time) (err error) {
+func (s *Sender) Send(metric interfaces.Metric, t []byte) (err error) {
 	m := metric.(*Metric)
 	_, err = s.w.Write(s.prefix)
 	if err != nil {
@@ -121,6 +120,14 @@ func (s *Sender) Send(metric interfaces.Metric, t *time.Time) (err error) {
 			return err
 		}
 		// s.w.Flush()
+	}
+	_, err = s.w.Write([]byte{32, 49, 32})
+	if err != nil {
+		return err
+	}
+	_, err = s.w.Write(t)
+	if err != nil {
+		return err
 	}
 	err = s.w.WriteByte(10) // newline
 	return err

@@ -3,6 +3,8 @@ package server
 import (
 	"time"
 
+	"strconv"
+
 	metrics "github.com/armon/go-metrics"
 	i "github.com/ctrlok/tsdbb/interfaces"
 )
@@ -16,7 +18,7 @@ type control struct {
 	start int
 	end   int
 	N     int
-	time  *time.Time
+	time  []byte
 }
 
 var errorName = []string{"e"}
@@ -63,19 +65,22 @@ func tickerLoop(count, senders int, tickerChan <-chan time.Time, controlChan cha
 	}
 }
 
+// I know, it's really non weel performer. But that methot will work only 1 time/sec
+// TODO: rewrite
 func splitArray(count, senders int, t time.Time) (array []control) {
 	if count <= 0 {
 		return
 	}
 	n := count / senders
+	timeByte := []byte(strconv.Itoa(int(t.Unix())))
 	var i int
 	for i = 0; i+n < count; i += n {
-		array = append(array, control{start: i, end: i + n, N: n, time: &t})
+		array = append(array, control{start: i, end: i + n, N: n, time: timeByte})
 	}
 	if i == count {
 		return
 	}
-	array = append(array, control{start: i, end: count, N: count - i, time: &t})
+	array = append(array, control{start: i, end: count, N: count - i, time: timeByte})
 	return
 }
 

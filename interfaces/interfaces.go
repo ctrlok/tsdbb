@@ -1,9 +1,6 @@
 package interfaces
 
-import (
-	"net/url"
-	"time"
-)
+import "net/url"
 
 // Metric is a main interface for metrics
 type Metric interface {
@@ -23,5 +20,5 @@ type TSDB interface {
 // Sender is a main interface for sending metrics
 type Sender interface {
 	GetHost() string
-	Send(Metric, *time.Time) error
+	Send(Metric, []byte) error
 }
