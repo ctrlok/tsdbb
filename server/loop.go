@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"time"
 
 	"strconv"
@@ -72,7 +73,7 @@ func splitArray(count, senders int, t time.Time) (array []control) {
 		return
 	}
 	n := count / senders
-	timeByte := []byte(strconv.Itoa(int(t.Unix())))
+	timeByte := []byte(fmt.Sprint(strconv.Itoa(int(t.Unix())), "\n"))
 	var i int
 	for i = 0; i+n < count; i += n {
 		array = append(array, control{start: i, end: i + n, N: n, time: timeByte})

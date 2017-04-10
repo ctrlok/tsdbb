@@ -12,7 +12,7 @@ import (
 )
 
 // Metric is a
-type Metric [4][2]byte
+type Metric [12]byte
 
 // Internal is tuple method for Metric interface
 func (m *Metric) Internal() interface{} {
@@ -28,7 +28,8 @@ type PregeneratedMetrics struct {
 // Metric return metric or out of index error
 func (p *PregeneratedMetrics) Metric(i int) (interfaces.Metric, error) {
 	if i >= len(p.metrics) {
-		return &Metric{}, p.err
+		m := Metric{}
+		return &m, p.err
 	}
 	return &p.metrics[i], nil
 }
@@ -39,28 +40,56 @@ type TSDB struct {
 	DevNull         bool
 }
 
+// func (t *TSDB) GenerateMetrics(i int) interfaces.PregeneratedMetrics {
+
+// 	var n1, n2, n3, n4 int = 0, 0, 0, 0
+// 	for n := 0; n < i; n++ {
+// 		// if n5 > 99 {
+// 		// 	n5, n4 = 0, n4+1
+// 		// }
+// 		if n4 > 99 {
+// 			n4, n3 = 0, n3+1
+// 		}
+// 		if n3 > 99 {
+// 			n3, n2 = 0, n2+1
+// 		}
+// 		if n2 > 99 {
+// 			n2, n1 = 0, n1+1
+// 		}
+// 		p.metrics[n][0] = itoa(n1)
+// 		p.metrics[n][1] = itoa(n2)
+// 		p.metrics[n][2] = itoa(n3)
+// 		p.metrics[n][3] = itoa(n4)
+// 		// p.metrics[n][4] = itoa(n5)
+// 		n4++
+// 	}
+// 	return &p
+// }
+
 // GenerateMetrics is a method for create PregeneratedMetrics
 func (t *TSDB) GenerateMetrics(i int) interfaces.PregeneratedMetrics {
 	p := PregeneratedMetrics{}
 	p.metrics = make([]Metric, i)
-	for i := range p.metrics[0] {
-		p.metrics[0][i][0] = 48
-		p.metrics[0][i][1] = 48
+	for n := range p.metrics[0] {
+		p.metrics[0][n] = 48
 	}
 	for n := 1; n < i; n++ {
 		var plus byte = 1
-		for k := 3; k > -1; k-- {
-			for m := 1; m > -1; m-- {
-				if plus == 1 {
-					if p.metrics[n-1][k][m] == 57 {
-						p.metrics[n][k][m] = 48
-					} else {
-						p.metrics[n][k][m] = p.metrics[n-1][k][m] + plus
-						plus = 0
-					}
+		p.metrics[n][0] = 46
+		for k := 11; k > 0; k-- {
+			if k%3 == 0 {
+				p.metrics[n][k] = 46
+				continue
+			}
+			if plus == 1 {
+				if p.metrics[n-1][k] == 57 {
+					p.metrics[n][k] = 48
 				} else {
-					p.metrics[n][k][m] = p.metrics[n-1][k][m]
+					p.metrics[n][k] = p.metrics[n-1][k] + plus
+					plus = 0
 				}
+			} else {
+				p.metrics[n][k] = p.metrics[n-1][k]
 			}
 		}
 	}
@@ -73,7 +102,7 @@ func (t *TSDB) NewSender(uri *url.URL) (s interfaces.Sender, err error) {
 	if t.DevNull {
 		// sender.f, _ = os.OpenFile("/tmp/metricTEst", os.O_RDWR, 0755)
 		sender.f = ioutil.Discard
-		sender.w = bufio.NewWriter(sender.f)
+		sender.w = bufio.NewWriterSize(sender.f, 4*1024)
 		return &sender, nil
 	}
 	addr, err := net.ResolveTCPAddr(uri.Scheme, uri.Host)
@@ -106,30 +135,15 @@ func (s *Sender) Send(metric interfaces.Metric, t []byte) (err error) {
 	if err != nil {
 		return err
 	}
-	for i := 0; i < 4; i++ {
-		err = s.w.WriteByte(46) // dot
-		if err != nil {
-			return err
-		}
-		err = s.w.WriteByte(m[i][0])
-		if err != nil {
-			return err
-		}
-		err = s.w.WriteByte(m[i][1])
-		if err != nil {
-			return err
-		}
-		// s.w.Flush()
+	_, err = s.w.Write(m[0:])
+	if err != nil {
+		return err
 	}
 	_, err = s.w.Write([]byte{32, 49, 32})
 	if err != nil {
 		return err
 	}
 	_, err = s.w.Write(t)
-	if err != nil {
-		return err
-	}
-	err = s.w.WriteByte(10) // newline
 	return err
 }
 
