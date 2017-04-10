@@ -17,7 +17,7 @@ type testSender struct {
 }
 
 func (t *testSender) GetHost() string { return t.host }
-func (t *testSender) Send(metric i.Metric, time *time.Time) error {
+func (t *testSender) Send(metric i.Metric, time []byte) error {
 	t.sended++
 	return nil
 }
@@ -55,14 +55,14 @@ func TestSenderInstance_Empty(t *testing.T) {
 }
 
 func TestSenderInstance_Succ(t *testing.T) {
-	time := time.Now()
+	timeByte := []byte{}
 	pregenerated := testPregeneratedMetrics{}
 	controlChan := make(chan control, 2)
 	sender := testSender{}
 
 	// Send message if it has messages in channel
-	controlChan <- control{start: 0, end: 2, N: 2, time: &time}
-	controlChan <- control{start: 2, end: 4, N: 2, time: &time}
+	controlChan <- control{start: 0, end: 2, N: 2, time: timeByte}
+	controlChan <- control{start: 2, end: 4, N: 2, time: timeByte}
 	close(controlChan)
 	err := senderInstance(&pregenerated, &sender, controlChan)
 	assert.NoError(t, err)
@@ -71,14 +71,14 @@ func TestSenderInstance_Succ(t *testing.T) {
 }
 
 func TestSenderInstance_Fail(t *testing.T) {
-	time := time.Now()
+	timeByte := []byte{}
 	pregenerated := testPregeneratedMetrics{}
 	controlChan := make(chan control, 2)
 	sender := testSender{}
 
 	// Send message if it has messages in channel
-	controlChan <- control{start: 0, end: 2, N: 2, time: &time}
-	controlChan <- control{start: 2, end: 50, N: 2, time: &time}
+	controlChan <- control{start: 0, end: 2, N: 2, time: timeByte}
+	controlChan <- control{start: 2, end: 50, N: 2, time: timeByte}
 	close(controlChan)
 	err := senderInstance(&pregenerated, &sender, controlChan)
 	assert.Error(t, err)
@@ -100,9 +100,9 @@ func TestSplitArray_Long(t *testing.T) {
 				t.Fatalf("non equal len. count: %v, senders: %v\n   testArray: %#v\n   array: %#v", count, senders, testArray, array)
 			}
 
-			for i := 0; i < count; i++ {
-				if testArray[i] != i {
-					t.Fatalf("Error splitting array, when count=%v, senders=%v, on %v element (actual: %v)", count, senders, i, testArray[i])
+			for n := 0; n < count; n++ {
+				if testArray[n] != n {
+					t.Fatalf("Error splitting array, when count=%v, senders=%v, on %v element (actual: %v)", count, senders, n, testArray[n])
 				}
 			}
 		}

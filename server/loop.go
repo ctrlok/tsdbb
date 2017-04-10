@@ -2,12 +2,12 @@ package server
 
 import (
 	"fmt"
-	"time"
-
 	"strconv"
+	"time"
 
 	metrics "github.com/armon/go-metrics"
 	i "github.com/ctrlok/tsdbb/interfaces"
+	"go.uber.org/zap"
 )
 
 type countStruct struct {
@@ -36,17 +36,19 @@ func loop(pregenerated i.PregeneratedMetrics, senders []i.Sender, count int, tic
 
 func senderInstance(pregenerated i.PregeneratedMetrics, sender i.Sender, controlChan chan control) (err error) {
 	for c := range controlChan {
-		for i := c.start; i < c.end; i++ {
-			metric, err := pregenerated.Metric(i)
+		for n := c.start; n < c.end; n++ {
+			metric, err := pregenerated.Metric(n)
 			if err != nil {
 				return err
 			}
 			err = sender.Send(metric, c.time)
 			if err != nil {
+				Logger.Error("Finish sender")
 				metrics.IncrCounter(errorName, float32(c.N))
 			}
 			// metrics.IncrCounter([]string{"real_succ"}, 1)
 		}
+		Logger.Debug("messages sended", zap.Int("sended", c.N), zap.String("to_host", sender.GetHost()))
 		metrics.IncrCounter(succName, float32(c.N))
 	}
 	return nil
@@ -74,14 +76,14 @@ func splitArray(count, senders int, t time.Time) (array []control) {
 	}
 	n := count / senders
 	timeByte := []byte(fmt.Sprint(strconv.Itoa(int(t.Unix())), "\n"))
-	var i int
-	for i = 0; i+n < count; i += n {
-		array = append(array, control{start: i, end: i + n, N: n, time: timeByte})
+	var k int
+	for k = 0; k+n < count; k += n {
+		array = append(array, control{start: k, end: k + n, N: n, time: timeByte})
 	}
-	if i == count {
+	if k == count {
 		return
 	}
-	array = append(array, control{start: i, end: count, N: count - i, time: timeByte})
+	array = append(array, control{start: k, end: count, N: count - k, time: timeByte})
 	return
 }
 

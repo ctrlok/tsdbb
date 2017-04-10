@@ -5,8 +5,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// selfCmd represents the self command
-var selfCmd = &cobra.Command{
+// SelfCmd represents the self command
+var SelfCmd = &cobra.Command{
 	Use:   "self",
 	Short: "testing internal speed",
 	Long: `That method is primary for uderstanding how mush metrics you can send without locking
@@ -16,10 +16,10 @@ provider, please use:
 tsdbb bench graphite self [flags]`,
 	Run: func(cmd *cobra.Command, args []string) {
 		tsdb := &self.TSDB{}
-		startServer(tsdb, cmd, []string{""})
+		StartServer(tsdb, cmd, []string{""})
 	},
 }
 
 func init() {
-	benchCmd.AddCommand(selfCmd)
+	BenchCmd.AddCommand(SelfCmd)
 }

@@ -128,6 +128,8 @@ type Sender struct {
 	host string
 }
 
+var helpNum = []byte{32, 49, 32}
+
 // Send is a method for sending messages. Work only with internal Metric
 func (s *Sender) Send(metric interfaces.Metric, t []byte) (err error) {
 	m := metric.(*Metric)
@@ -139,7 +141,7 @@ func (s *Sender) Send(metric interfaces.Metric, t []byte) (err error) {
 	if err != nil {
 		return err
 	}
-	_, err = s.w.Write([]byte{32, 49, 32})
+	_, err = s.w.Write(helpNum)
 	if err != nil {
 		return err
 	}

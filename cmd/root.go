@@ -17,23 +17,19 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/spf13/cobra"
 )
 
+var ListenURL string
+
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
-	Use:   "tsdb-bench",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	//	Run: func(cmd *cobra.Command, args []string) { },
+	Use:              "tsdb-bench",
+	Short:            "A brief description of your application a",
+	Long:             ``,
+	PersistentPreRun: PreRun,
 }
 
 // Execute adds all child commands to the root command sets flags appropriately.
@@ -46,11 +42,24 @@ func Execute() {
 }
 
 func init() {
-	// Here you will define your flags and configuration settings.
-	// Cobra supports Persistent Flags, which, if defined here,
-	// will be global for your application.
+	RootCmd.PersistentFlags().StringVarP(&ListenURL, "listen-url", "l", "127.0.0.1:8080", "set host:port for listening. Examples: 9090, :9090, 127.0.0.1:9090, 0.0.0.0:80")
+	RootCmd.PersistentFlags().BoolP("debug", "D", false, "set log level to debug")
+	RootCmd.AddCommand(BenchCmd)
+}
 
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+func PreRun(cmd *cobra.Command, args []string) {
+	listenFlag := cmd.Flag("listen-url")
+	if os.Getenv("LISTEN") != "" && !listenFlag.Changed {
+		ListenURL = os.Getenv("LISTEN")
+	}
+	ListenURL = parseListen(ListenURL)
+
+}
+
+func parseListen(s string) string {
+	_, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return s
+	}
+	return fmt.Sprint(":", s)
 }

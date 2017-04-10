@@ -5,7 +5,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// selfCmd represents the self command
+// SelfCmd represents the self command
 var selfGraphiteCmd = &cobra.Command{
 	Use:   "self",
 	Short: "testing internal speed",
@@ -13,10 +13,10 @@ var selfGraphiteCmd = &cobra.Command{
 without locking on syscals and actual sending date.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		tsdb := &graphite.TSDB{DevNull: true}
-		startServer(tsdb, cmd, []string{""})
+		StartServer(tsdb, cmd, []string{""})
 	},
 }
 
 func init() {
-	graphiteCmd.AddCommand(selfGraphiteCmd)
+	GraphiteCmd.AddCommand(selfGraphiteCmd)
 }

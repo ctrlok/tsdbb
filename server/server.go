@@ -5,13 +5,12 @@ import (
 	"net/http"
 	"time"
 
-	"go.uber.org/zap"
-
 	metrics "github.com/armon/go-metrics"
 	i "github.com/ctrlok/tsdbb/interfaces"
+	"go.uber.org/zap"
 )
 
-var Logger, _ = zap.NewDevelopment()
+var Logger, _ = zap.NewProduction()
 
 func StartServer(pregenerated i.PregeneratedMetrics,
 	senders []i.Sender, count int, tick, statTick time.Duration, listenURL string, statDisable bool) (err error) {

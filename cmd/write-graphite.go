@@ -5,8 +5,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// graphiteCmd represents the graphite command
-var graphiteCmd = &cobra.Command{
+// GraphiteCmd represents the graphite command
+var GraphiteCmd = &cobra.Command{
 	Use:   "graphite [servers] [flags]",
 	Short: "bench graphite servers",
 	Long:  ``,
@@ -14,11 +14,11 @@ var graphiteCmd = &cobra.Command{
 		tsdb := &graphite.TSDB{}
 		prefix, _ := cmd.Flags().GetString("prefix")
 		tsdb.GeneratorPrefix = []byte(prefix)
-		startServer(tsdb, cmd, args)
+		StartServer(tsdb, cmd, args)
 	},
 }
 
 func init() {
-	benchCmd.AddCommand(graphiteCmd)
-	graphiteCmd.PersistentFlags().String("prefix", "metric", "it is prefix for graphite metrics")
+	GraphiteCmd.PersistentFlags().String("prefix", "metric", "it is prefix for graphite metrics")
+	BenchCmd.AddCommand(GraphiteCmd)
 }
