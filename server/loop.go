@@ -7,6 +7,7 @@ import (
 
 	metrics "github.com/armon/go-metrics"
 	i "github.com/ctrlok/tsdbb/interfaces"
+	"github.com/ctrlok/tsdbb/log"
 	"go.uber.org/zap"
 )
 
@@ -43,12 +44,12 @@ func senderInstance(pregenerated i.PregeneratedMetrics, sender i.Sender, control
 			}
 			err = sender.Send(metric, c.time)
 			if err != nil {
-				Logger.Error("Finish sender")
+				log.Log.Error("Finish sender")
 				metrics.IncrCounter(errorName, float32(c.N))
 			}
 			// metrics.IncrCounter([]string{"real_succ"}, 1)
 		}
-		Logger.Debug("messages sended", zap.Int("sended", c.N), zap.String("to_host", sender.GetHost()))
+		log.Log.Debug("messages sended", zap.Int("sended", c.N), zap.String("to_host", sender.GetHost()))
 		metrics.IncrCounter(succName, float32(c.N))
 	}
 	return nil

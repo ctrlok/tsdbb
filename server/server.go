@@ -7,10 +7,8 @@ import (
 
 	metrics "github.com/armon/go-metrics"
 	i "github.com/ctrlok/tsdbb/interfaces"
-	"go.uber.org/zap"
+	"github.com/ctrlok/tsdbb/log"
 )
-
-var Logger, _ = zap.NewProduction()
 
 func StartServer(pregenerated i.PregeneratedMetrics,
 	senders []i.Sender, count int, tick, statTick time.Duration, listenURL string, statDisable bool) (err error) {
@@ -43,7 +41,7 @@ func StartServer(pregenerated i.PregeneratedMetrics,
 
 	err = loop(pregenerated, senders, count, ticker.C, countChan)
 	if err != nil {
-		Logger.Fatal(err.Error())
+		log.Log.Fatal(err.Error())
 	}
 	return
 
@@ -54,17 +52,14 @@ func logFunc(tick time.Duration, inm MetricSink) {
 	for range ticker.C {
 		for _, metric := range inm.Data() {
 			for k, v := range metric.Counters {
-				Logger.Info(fmt.Sprintf("%s: %f, %s", k, v.Sum, v.LastUpdated.Format("15:04:05")))
+				log.Log.Debug(fmt.Sprintf("%s: %f, %s", k, v.Sum, v.LastUpdated.Format("15:04:05")))
 			}
-			// for k, v := range metric.Gauges {
-			// 	logger.Info(fmt.Sprintf("%s: %v", k, v))
-			// }
 		}
-		Logger.Info("-------------------------------")
+		log.Log.Debug("-------------------------------")
 	}
 }
 
 func shutDown(w http.ResponseWriter, r *http.Request, t *time.Ticker) {
-	Logger.Info("Shutting down...")
+	log.Log.Info("Shutting down...")
 	t.Stop()
 }

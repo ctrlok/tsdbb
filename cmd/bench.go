@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/ctrlok/tsdbb/interfaces"
+	"github.com/ctrlok/tsdbb/log"
 	"github.com/ctrlok/tsdbb/server"
 	"github.com/spf13/cobra"
-	"go.uber.org/zap"
 )
 
 var startCount int
@@ -40,12 +40,15 @@ func StartServer(tsdb interfaces.TSDB, command *cobra.Command, args []string) (e
 
 	tStart := time.Now().UnixNano()
 	pregenerated := tsdb.GenerateMetrics(maxMetrics)
-	server.Logger.Info("Metrics generated", zap.Int("timer_ns", int((time.Now().UnixNano()-tStart)/1000000)))
+	log.SLog.Infow("Metrics generated", "timer_ns", int((time.Now().UnixNano()-tStart)/1000000))
+
+	log.SLog.Debug("Trying to generate senders")
 	senders, err := generateSenders(tsdb, args)
 	if err != nil {
-		server.Logger.Error(err.Error())
+		log.Log.Error(err.Error())
 		return err
 	}
+	log.SLog.Infof("Created %d senders for %d hosts...", len(senders), len(args))
 	server.StartServer(pregenerated, senders, startCount, tick, statTick, ListenURL, statDisable)
 	return nil
 }
