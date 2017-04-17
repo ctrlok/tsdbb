@@ -12,20 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package cmd
 
-import "github.com/ctrlok/tsdbb-2/cmd"
-import (
-	_ "net/http/pprof"
+import "github.com/spf13/cobra"
 
-	"github.com/stackimpact/stackimpact-go"
-)
+// writeCmd represents the write command
+var writeCmd = &cobra.Command{
+	Use:   "write",
+	Short: "A brief description of your command",
+}
 
-func main() {
-	agent := stackimpact.NewAgent()
-	agent.Start(stackimpact.Options{
-		AgentKey: "ff5a285ca4b21517d9073041b586c016b374c5a3",
-		AppName:  "MyGoApp",
-	})
-	cmd.Execute()
+func init() {
+	benchCmd.AddCommand(writeCmd)
 }

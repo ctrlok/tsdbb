@@ -1,65 +1,34 @@
 package server
 
 import (
-	"fmt"
+	"context"
+
 	"net/http"
+
 	"time"
 
-	metrics "github.com/armon/go-metrics"
-	i "github.com/ctrlok/tsdbb/interfaces"
-	"github.com/ctrlok/tsdbb/log"
+	"github.com/ctrlok/tsdbb-2/interfaces"
+	"github.com/ctrlok/tsdbb-2/log"
 )
 
-func StartServer(pregenerated i.PregeneratedMetrics,
-	senders []i.Sender, count int, tick, statTick time.Duration, listenURL string, statDisable bool) (err error) {
-	var ticker = time.NewTicker(tick)
-	var countChan = make(chan countStruct)
-
-	var inm MetricSink
-	if statDisable {
-		inm = &BlackholeSink{}
-	} else {
-		inm = metrics.NewInmemSink(statTick, 3*statTick)
-	}
-	// TODO: send metrics to statsd, statsite, etc, change name
-	metricsConfig := metrics.Config{
-		ServiceName:          "s",
-		EnableHostname:       false,
-		EnableRuntimeMetrics: false,
-		EnableTypePrefix:     false,
-	}
-	metrics.NewGlobal(&metricsConfig, inm)
-
-	http.HandleFunc("/ShutDown", func(w http.ResponseWriter, r *http.Request) { shutDown(w, r, ticker) })
-	go func() {
-		err = http.ListenAndServe(listenURL, nil) // set listen port
-		if err != nil {
-			panic(err)
-		}
-	}()
-	go logFunc(statTick, inm)
-
-	err = loop(pregenerated, senders, count, ticker.C, countChan)
+func StartServer(basic interfaces.Basic, opts Options, ctx context.Context) {
+	timeNow := time.Now().UnixNano()
+	basic.NewRequests(100000000)
+	log.SLogger.Infow("Metrics generated", "timer_ns", int((time.Now().UnixNano()-timeNow)/1000000))
+	bus := make(chan busMessage, 10000000)
+	chStat := make(chan statMessage)
+	err := startClients(ctx, basic, opts, bus, chStat)
+	go statisctics(ctx, chStat)
 	if err != nil {
-		log.Log.Fatal(err.Error())
+		log.Logger.Error("Fail to start server!", log.ParseFields(ctx)...)
 	}
-	return
+	controlChan := make(chan controlMessages, 1)
+	go startGenerator(ctx, opts, controlChan, bus)
 
-}
-
-func logFunc(tick time.Duration, inm MetricSink) {
-	ticker := time.NewTicker(tick)
-	for range ticker.C {
-		for _, metric := range inm.Data() {
-			for k, v := range metric.Counters {
-				log.Log.Debug(fmt.Sprintf("%s: %f, %s", k, v.Sum, v.LastUpdated.Format("15:04:05")))
-			}
-		}
-		log.Log.Debug("-------------------------------")
+	log.SLogger.Info("Starting server")
+	log.Logger.Info("Starting server at port: ", log.ParseFields(ctx)...)
+	err = http.ListenAndServe(opts.ListenURL, nil) // set listen port
+	if err != nil {
+		panic(err)
 	}
-}
-
-func shutDown(w http.ResponseWriter, r *http.Request, t *time.Ticker) {
-	log.Log.Info("Shutting down...")
-	t.Stop()
 }

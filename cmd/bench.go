@@ -1,75 +1,62 @@
+// Copyright © 2017 Vsevolod Poliakov <ctrlok@gmail.com>
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package cmd
 
 import (
 	"fmt"
-	"net/url"
+	"os"
+	"strconv"
 	"time"
 
-	"github.com/ctrlok/tsdbb/interfaces"
 	"github.com/ctrlok/tsdbb/log"
-	"github.com/ctrlok/tsdbb/server"
 	"github.com/spf13/cobra"
 )
 
-var startCount int
-var parallel int
-var tick time.Duration
-var maxMetrics int
-var statDisable bool
-var statTick time.Duration
-
-// BenchCmd represents the bench command
-var BenchCmd = &cobra.Command{
-	Use:   "bench",
-	Short: "A brief description of your command",
-	Long:  ``,
+// benchCmd represents the bench command
+var benchCmd = &cobra.Command{
+	Use:              "bench",
+	Short:            "Start benchmark server",
+	PersistentPreRun: preRunBench,
 }
 
 func init() {
-	RootCmd.AddCommand(BenchCmd)
-	BenchCmd.PersistentFlags().IntVarP(&startCount, "start-count", "c", 1000, "Start count of metrics which will be send")
-	BenchCmd.PersistentFlags().IntVarP(&parallel, "parallel", "p", 6, "count of workers for each server in args")
-	BenchCmd.PersistentFlags().DurationVarP(&tick, "tick", "t", 1*time.Second, "retention period")
-	BenchCmd.PersistentFlags().IntVar(&maxMetrics, "maximum-metrics", 100000000, "maximum of metrics, which would be sended for one tick")
-	BenchCmd.PersistentFlags().BoolVar(&statDisable, "statistics-disable", false, "disable internal metrics")
-	BenchCmd.PersistentFlags().DurationVar(&statTick, "statictics-tick", tick, "duration for internal statistics agregation (Default: same as --tick)")
-
+	RootCmd.AddCommand(benchCmd)
+	benchCmd.PersistentFlags().IntVarP(&Options.StartCount, "count", "c", 1000, "Start count of metrics which will be send")
+	benchCmd.PersistentFlags().IntVar(&Options.StartStep, "step", 100, "default value for step")
+	benchCmd.PersistentFlags().IntVarP(&Options.Parallel, "parallel", "p", 2, "Count of parallel workers for each server")
+	benchCmd.PersistentFlags().DurationVarP(&Options.Tick, "tick", "t", time.Second, "retention period")
+	benchCmd.PersistentFlags().StringP("listen", "l", ":8080", "adress for internal http server")
 }
 
-func StartServer(tsdb interfaces.TSDB, command *cobra.Command, args []string) (err error) {
+func preRunBench(cmd *cobra.Command, args []string) {
+	rootPreRun(cmd, args)
+	log.SLogger.Debug("Start preRun for bench")
+	listenFlag := cmd.Flag("listen")
+	Options.ListenURL = listenFlag.Value.String()
+	if os.Getenv("LISTEN") != "" && !listenFlag.Changed {
+		log.SLogger.Debug("Get listen paramether from os env")
+		Options.ListenURL = os.Getenv("LISTEN")
+	}
+	Options.ListenURL = parseListen(Options.ListenURL)
+	log.SLogger.Debugf("Setting listen url to %s", Options.ListenURL)
+}
 
-	tStart := time.Now().UnixNano()
-	pregenerated := tsdb.GenerateMetrics(maxMetrics)
-	log.SLog.Infow("Metrics generated", "timer_ns", int((time.Now().UnixNano()-tStart)/1000000))
-
-	log.SLog.Debug("Trying to generate senders")
-	senders, err := generateSenders(tsdb, args)
+func parseListen(s string) string {
+	_, err := strconv.ParseInt(s, 10, 64)
 	if err != nil {
-		log.Log.Error(err.Error())
-		return err
+		return s
 	}
-	log.SLog.Infof("Created %d senders for %d hosts...", len(senders), len(args))
-	server.StartServer(pregenerated, senders, startCount, tick, statTick, ListenURL, statDisable)
-	return nil
-}
-
-func generateSenders(tsdb interfaces.TSDB, args []string) ([]interfaces.Sender, error) {
-	array := []interfaces.Sender{}
-	if len(args) == 0 {
-		return array, fmt.Errorf("Please, add at least 1 destenation host")
-	}
-	for _, senderString := range args {
-		uri, err := url.Parse(senderString)
-		if err != nil {
-			return array, err
-		}
-		for n := 0; n < parallel; n++ {
-			sender, err := tsdb.NewSender(uri)
-			if err != nil {
-				return array, err
-			}
-			array = append(array, sender)
-		}
-	}
-	return array, nil
+	return fmt.Sprint(":", s)
 }

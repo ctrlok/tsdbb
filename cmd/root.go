@@ -17,21 +17,21 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"strconv"
 
-	"github.com/ctrlok/tsdbb/log"
-	"github.com/spf13/cobra"
 	"go.uber.org/zap"
+
+	"github.com/ctrlok/tsdbb-2/log"
+	"github.com/ctrlok/tsdbb-2/server"
+	"github.com/spf13/cobra"
 )
 
-var ListenURL string
+var Options server.Options
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
-	Use:              "tsdb-bench",
-	Short:            "A brief description of your application a",
-	Long:             ``,
-	PersistentPreRun: PreRun,
+	Use:              "tsdbb-2",
+	Short:            "A brief description of your application",
+	PersistentPreRun: rootPreRun,
 }
 
 // Execute adds all child commands to the root command sets flags appropriately.
@@ -44,22 +44,15 @@ func Execute() {
 }
 
 func init() {
-	RootCmd.PersistentFlags().StringVarP(&ListenURL, "listen-url", "l", "127.0.0.1:8080", "set host:port for listening. Examples: 9090, :9090, 127.0.0.1:9090, 0.0.0.0:80")
-	RootCmd.PersistentFlags().BoolP("debug", "D", false, "set log level to debug")
-	RootCmd.PersistentFlags().Bool("json", false, "Save logs in json format")
-	RootCmd.AddCommand(BenchCmd)
+	RootCmd.PersistentFlags().BoolVarP(&log.DebugLevel, "debug", "D", false, "Set log level to debug")
+	RootCmd.PersistentFlags().Bool("json", false, "format log to json")
 }
 
-func PreRun(cmd *cobra.Command, args []string) {
-	listenFlag := cmd.Flag("listen-url")
-	if os.Getenv("LISTEN") != "" && !listenFlag.Changed {
-		ListenURL = os.Getenv("LISTEN")
-	}
-	ListenURL = parseListen(ListenURL)
-
+func rootPreRun(cmd *cobra.Command, args []string) {
+	fmt.Println("LOG START!!!!")
 	var config zap.Config
 
-	if debugFlag, _ := cmd.Flags().GetBool("debug"); debugFlag {
+	if log.DebugLevel {
 		config = zap.NewDevelopmentConfig()
 	} else {
 		config = zap.NewProductionConfig()
@@ -72,18 +65,7 @@ func PreRun(cmd *cobra.Command, args []string) {
 		config.Encoding = "console"
 		config.EncoderConfig = zap.NewDevelopmentEncoderConfig()
 	}
-
-	log.Log, _ = config.Build()
-	log.SLog = log.Log.Sugar()
-
-	log.Log.Debug("Log was seted")
-
-}
-
-func parseListen(s string) string {
-	_, err := strconv.ParseInt(s, 10, 64)
-	if err != nil {
-		return s
-	}
-	return fmt.Sprint(":", s)
+	log.Logger, _ = config.Build()
+	log.SLogger = log.Logger.Sugar()
+	log.SLogger.Debugw("Log initialized as", "type", config.Encoding, "debug", log.DebugLevel)
 }

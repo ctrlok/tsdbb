@@ -1,41 +1,70 @@
 package log
 
 import (
+	"context"
 	"testing"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
-func init() {
-	Log, _ = zap.NewProduction()
-	SLog = Log.Sugar()
-}
+var log, _ = zap.NewProduction()
 
-func BenchmarkZapSugar(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		SLog.Debug("string", "key", "value")
+func BenchmarkEmpty(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		log.Debug("string")
 	}
 }
 
-func BenchmarkZapDefault(b *testing.B) {
-	str := zap.String("key", "value")
-	for i := 0; i < b.N; i++ {
-		Log.Debug("string", str)
+func BenchmarkKV(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		log.Debug("string", zap.String("key", "value"))
 	}
 }
 
-func BenchmarkZapDefault2(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		Log.Debug("string", zap.String("key", "value"))
+var ctx = context.WithValue(context.Background(), "key", "value")
+
+func debugWContext(ctx context.Context) {
+	fields := []zapcore.Field{}
+	if n, ok := ctx.Value("key").(string); ok {
+		fields = append(fields, zap.String("key", n))
+	}
+	log.Debug("string", fields...)
+}
+func BenchmarkKVWithContext(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		debugWContext(ctx)
 	}
 }
 
-func BenchmarkZapEntry(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		l := Log.Check(zap.DebugLevel, "message")
-		if l.Level == zap.DebugLevel {
-			Log.Debug("string", zap.String("key", "value"))
-		}
+func funcString(ctx context.Context) string {
+	if n, ok := ctx.Value("key").(string); ok {
+		return n
 	}
+	return ""
+}
 
+func BenchmarkKVWithFuncString(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		log.Debug("string", zap.String("key", funcString(ctx)))
+	}
+}
+
+var debug = false
+
+func debugWContextBool(ctx context.Context) {
+	if !debug {
+		return
+	}
+	fields := []zapcore.Field{}
+	if n, ok := ctx.Value("key").(string); ok {
+		fields = append(fields, zap.String("key", n))
+	}
+	log.Debug("string", fields...)
+}
+
+func BenchmarkKVWithContextBool(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		debugWContextBool(context.WithValue(context.Background(), "key", "value"))
+	}
 }
