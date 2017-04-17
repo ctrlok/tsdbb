@@ -14,7 +14,7 @@
 
 package main
 
-import "github.com/ctrlok/tsdbb-2/cmd"
+import "github.com/ctrlok/tsdbb/cmd"
 import (
 	_ "net/http/pprof"
 

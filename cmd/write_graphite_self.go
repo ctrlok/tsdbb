@@ -17,9 +17,9 @@ package cmd
 import (
 	"context"
 
-	"github.com/ctrlok/tsdbb-2/interfaces/graphite"
-	"github.com/ctrlok/tsdbb-2/log"
-	"github.com/ctrlok/tsdbb-2/server"
+	"github.com/ctrlok/tsdbb/interfaces/graphite"
+	"github.com/ctrlok/tsdbb/log"
+	"github.com/ctrlok/tsdbb/server"
 	"github.com/spf13/cobra"
 )
 

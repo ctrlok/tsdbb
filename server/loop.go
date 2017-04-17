@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ctrlok/tsdbb-2/interfaces"
-	"github.com/ctrlok/tsdbb-2/log"
+	"github.com/ctrlok/tsdbb/interfaces"
+	"github.com/ctrlok/tsdbb/log"
 )
 
 type busMessage struct {

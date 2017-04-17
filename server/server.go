@@ -7,8 +7,8 @@ import (
 
 	"time"
 
-	"github.com/ctrlok/tsdbb-2/interfaces"
-	"github.com/ctrlok/tsdbb-2/log"
+	"github.com/ctrlok/tsdbb/interfaces"
+	"github.com/ctrlok/tsdbb/log"
 )
 
 func StartServer(basic interfaces.Basic, opts Options, ctx context.Context) {

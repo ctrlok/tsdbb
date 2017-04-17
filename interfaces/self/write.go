@@ -3,7 +3,7 @@ package self
 import (
 	"net/url"
 
-	"github.com/ctrlok/tsdbb-2/interfaces"
+	"github.com/ctrlok/tsdbb/interfaces"
 )
 
 type Req struct{}

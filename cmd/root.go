@@ -20,8 +20,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/ctrlok/tsdbb-2/log"
-	"github.com/ctrlok/tsdbb-2/server"
+	"github.com/ctrlok/tsdbb/log"
+	"github.com/ctrlok/tsdbb/server"
 	"github.com/spf13/cobra"
 )
 
@@ -29,7 +29,7 @@ var Options server.Options
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
-	Use:              "tsdbb-2",
+	Use:              "tsdbb",
 	Short:            "A brief description of your application",
 	PersistentPreRun: rootPreRun,
 }

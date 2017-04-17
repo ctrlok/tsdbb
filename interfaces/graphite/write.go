@@ -8,7 +8,7 @@ import (
 	"io/ioutil"
 	"net"
 
-	"github.com/ctrlok/tsdbb-2/interfaces"
+	"github.com/ctrlok/tsdbb/interfaces"
 )
 
 type Req [12]byte
