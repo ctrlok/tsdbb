@@ -15,8 +15,11 @@
 package cmd
 
 import (
-	"fmt"
+	"context"
 
+	"github.com/ctrlok/tsdbb/interfaces/graphite"
+	"github.com/ctrlok/tsdbb/log"
+	"github.com/ctrlok/tsdbb/server"
 	"github.com/spf13/cobra"
 )
 
@@ -24,15 +27,12 @@ import (
 var writeGraphiteCmd = &cobra.Command{
 	Use:   "graphite",
 	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// TODO: Work your own magic here
-		fmt.Println("graphite called")
+		ctx1 := context.WithValue(context.Background(), log.KeyBenchType, "write")
+		ctx2 := context.WithValue(ctx1, log.KeyTSDBType, "selfGraphite")
+		basic := &graphite.Basic{}
+		Options.Servers = args
+		server.StartServer(basic, Options, ctx2)
 	},
 }
 

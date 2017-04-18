@@ -23,17 +23,19 @@ type controlMessages struct {
 
 type Options struct {
 	StartCount, StartStep int
-	//ChankSize             int
-	Parallel       int
-	Tick, StatTick time.Duration
-	ListenURL      string
-	Servers        []string
+	Parallel              int
+	Tick, StatTick        time.Duration
+	ListenURL             string
+	Servers               []string
 }
 
-func startClients(ctx context.Context, basic interfaces.Basic, opts Options, bus <-chan busMessage, st chan<- statMessage) (err error) {
+func startClients(ctx context.Context, basic interfaces.Basic, opts Options,
+	bus <-chan busMessage, st chan<- statMessage) (err error) {
 	ctx = context.WithValue(ctx, log.KeyOperation, "startClients")
 	if len(opts.Servers) == 0 {
-		log.Logger.Error("You should define at least one server to send metrics", log.ParseFields(ctx)...)
+		err = fmt.Errorf("You should define at least one server to send metrics")
+		log.Logger.Error(err.Error(), log.ParseFields(ctx)...)
+		return err
 	}
 	for _, server := range opts.Servers {
 		for i := 0; i < opts.Parallel; i++ {
@@ -60,7 +62,6 @@ func startClient(ctx context.Context, cli interfaces.Client, basic interfaces.Ba
 	ctx = context.WithValue(ctx, log.KeyOperation, "sendMessage")
 	log.Logger.Debug("Starting...", log.ParseFields(ctx)...)
 	for message := range bus {
-		//log.Logger.Debug("Receive message...", log.ParseFields(ctx)...)
 		succCount := 0
 		errCount := 0
 		end := message.start + message.N
@@ -86,12 +87,12 @@ func startClient(ctx context.Context, cli interfaces.Client, basic interfaces.Ba
 	}
 }
 
-func startGenerator(ctx context.Context, opts Options, controlChan <-chan controlMessages, bus chan<- busMessage) {
+func startGenerator(ctx context.Context, opts Options,
+	controlChan <-chan controlMessages, bus chan<- busMessage, tickChan <-chan time.Time) {
 	ctx = context.WithValue(ctx, log.KeyOperation, "startGenerator")
 	defaultControl := controlMessages{opts.StartCount, opts.StartStep}
 	count := opts.StartCount
-	tickChan := time.NewTicker(opts.Tick)
-	for t := range tickChan.C {
+	for t := range tickChan {
 		select {
 		case defaultControl = <-controlChan:
 		default:
@@ -106,36 +107,34 @@ func startGenerator(ctx context.Context, opts Options, controlChan <-chan contro
 }
 
 func checkCount(initialCount int, defaultControl *controlMessages) int {
-	if defaultControl.count == initialCount {
+	switch {
+	case defaultControl.count == initialCount:
 		return initialCount
-	} else if defaultControl.count > initialCount {
+	case defaultControl.count > initialCount:
 		tmpCount := initialCount + defaultControl.step
-		if tmpCount > defaultControl.count {
-			return defaultControl.count
+		if tmpCount < defaultControl.count {
+			return tmpCount
 		}
-		return tmpCount
-	}
-	tmpCount := initialCount - defaultControl.step
-	if tmpCount < defaultControl.count {
 		return defaultControl.count
 	}
-	return tmpCount
+	tmpCount := initialCount - defaultControl.step
+	if tmpCount > defaultControl.count {
+		return tmpCount
+	}
+	return defaultControl.count
 }
 
-// I know, it's really non weel performer. But that methot will work only 1 time/sec
+// I know, it's really non well performer. But that method will work only 1 time/sec
 // TODO: rewrite
 func splitArray(ctx context.Context, count, senders int, t time.Time) (array []busMessage) {
 	if count <= 0 {
 		return
 	}
 	n := count / senders
-	timeByte := []byte(fmt.Sprint(strconv.Itoa(int(t.Unix())), "\n"))
+	timeByte := []byte(fmt.Sprint(strconv.Itoa(int(t.Unix()))))
 	var k int
 	for k = 0; k+n < count; k += n {
 		array = append(array, busMessage{start: k, N: n, time: timeByte, ctx: ctx})
-	}
-	if k == count {
-		return
 	}
 	array = append(array, busMessage{start: k, N: count - k, time: timeByte, ctx: ctx})
 	return

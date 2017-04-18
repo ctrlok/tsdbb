@@ -15,17 +15,8 @@
 package main
 
 import "github.com/ctrlok/tsdbb/cmd"
-import (
-	_ "net/http/pprof"
-
-	"github.com/stackimpact/stackimpact-go"
-)
+import _ "net/http/pprof"
 
 func main() {
-	agent := stackimpact.NewAgent()
-	agent.Start(stackimpact.Options{
-		AgentKey: "ff5a285ca4b21517d9073041b586c016b374c5a3",
-		AppName:  "MyGoApp",
-	})
 	cmd.Execute()
 }

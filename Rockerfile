@@ -2,5 +2,6 @@ FROM golang
 RUN apt-get update
 RUN apt-get install -y time
 WORKDIR /go/src/github.com/ctrlok/tsdbb
+RUN go get github.com/stackimpact/stackimpact-go
 ADD . /go/src/github.com/ctrlok/tsdbb
 TAG ctrlok/tsdb-bench

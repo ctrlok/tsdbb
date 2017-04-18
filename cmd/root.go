@@ -18,11 +18,10 @@ import (
 	"fmt"
 	"os"
 
-	"go.uber.org/zap"
-
 	"github.com/ctrlok/tsdbb/log"
 	"github.com/ctrlok/tsdbb/server"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 )
 
 var Options server.Options

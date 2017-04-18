@@ -3,10 +3,9 @@ package graphite
 import (
 	"bufio"
 	"io"
-	"net/url"
-
 	"io/ioutil"
 	"net"
+	"net/url"
 
 	"github.com/ctrlok/tsdbb/interfaces"
 )
@@ -72,7 +71,7 @@ func (b *Basic) NewClient(uri *url.URL) (interfaces.Client, error) {
 }
 
 type Client struct {
-	w      *bufio.Writer
+	w      io.Writer
 	f      io.Writer
 	prefix []byte
 
@@ -80,6 +79,7 @@ type Client struct {
 }
 
 var helpNum = []byte{32, 49, 32}
+var newLine = []byte{10}
 
 func (c *Client) Send(req interfaces.Req, time []byte) (err error) {
 	m := req.(*Req)
@@ -96,5 +96,9 @@ func (c *Client) Send(req interfaces.Req, time []byte) (err error) {
 		return err
 	}
 	_, err = c.w.Write(time)
+	if err != nil {
+		return err
+	}
+	_, err = c.w.Write(newLine)
 	return err
 }
