@@ -48,7 +48,6 @@ func init() {
 }
 
 func rootPreRun(cmd *cobra.Command, args []string) {
-	fmt.Println("LOG START!!!!")
 	var config zap.Config
 
 	if log.DebugLevel {

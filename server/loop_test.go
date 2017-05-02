@@ -319,31 +319,31 @@ func TestSplitArray_StartNSimpleTree(t *testing.T) {
 }
 
 func TestCheckCount_Equal(t *testing.T) {
-	control := &controlMessages{100, 100}
+	control := &ControlMessages{100, 100}
 	i := checkCount(100, control)
 	assert.Equal(t, 100, i)
 }
 
 func TestCheckCount_BiggerBigStep(t *testing.T) {
-	control := &controlMessages{105, 100}
+	control := &ControlMessages{105, 100}
 	i := checkCount(100, control)
 	assert.Equal(t, 105, i)
 }
 
 func TestCheckCount_BiggerLittleStep(t *testing.T) {
-	control := &controlMessages{205, 100}
+	control := &ControlMessages{205, 100}
 	i := checkCount(100, control)
 	assert.Equal(t, 200, i)
 }
 
 func TestCheckCount_LessBigStep(t *testing.T) {
-	control := &controlMessages{105, 100}
+	control := &ControlMessages{105, 100}
 	i := checkCount(200, control)
 	assert.Equal(t, 105, i)
 }
 
 func TestCheckCount_LessLittleStep(t *testing.T) {
-	control := &controlMessages{105, 100}
+	control := &ControlMessages{105, 100}
 	i := checkCount(300, control)
 	assert.Equal(t, 200, i)
 }
@@ -351,7 +351,7 @@ func TestCheckCount_LessLittleStep(t *testing.T) {
 func TestStartGenerator_Empty(t *testing.T) {
 	ctx := context.Background()
 	opts := Options{Parallel: 1, Servers: []string{""}}
-	controlChan := make(chan controlMessages, 1)
+	controlChan := make(chan ControlMessages, 1)
 	bus := make(chan busMessage, 1)
 	tickChan := make(chan time.Time, 1)
 	close(tickChan)
@@ -362,7 +362,7 @@ func TestStartGenerator_Empty(t *testing.T) {
 func TestStartGenerator_Simple(t *testing.T) {
 	ctx := context.Background()
 	opts := Options{Parallel: 1, Servers: []string{""}, StartCount: 1000}
-	controlChan := make(chan controlMessages, 1)
+	controlChan := make(chan ControlMessages, 1)
 	bus := make(chan busMessage, 1)
 	tickChan := make(chan time.Time, 1)
 	tickChan <- time.Time{}
@@ -378,7 +378,7 @@ func TestStartGenerator_Simple(t *testing.T) {
 func TestStartGenerator_SimpleTwoTicks(t *testing.T) {
 	ctx := context.Background()
 	opts := Options{Parallel: 1, Servers: []string{""}, StartCount: 1000}
-	controlChan := make(chan controlMessages, 1)
+	controlChan := make(chan ControlMessages, 1)
 	bus := make(chan busMessage, 2)
 	tickChan := make(chan time.Time, 2)
 	tickChan <- time.Time{}
@@ -392,12 +392,12 @@ func TestStartGenerator_SimpleTwoTicks(t *testing.T) {
 func TestStartGenerator_ControlSimple(t *testing.T) {
 	ctx := context.Background()
 	opts := Options{Parallel: 1, Servers: []string{""}, StartCount: 10}
-	controlChan := make(chan controlMessages, 1)
+	controlChan := make(chan ControlMessages, 1)
 	bus := make(chan busMessage, 2)
 	tickChan := make(chan time.Time, 2)
 	tickChan <- time.Time{}
 	close(tickChan)
-	controlChan <- controlMessages{20, 1}
+	controlChan <- ControlMessages{20, 1}
 
 	startGenerator(ctx, opts, controlChan, bus, tickChan)
 	assert.Equal(t, 1, len(bus))
@@ -409,13 +409,13 @@ func TestStartGenerator_ControlSimple(t *testing.T) {
 func TestStartGenerator_ControlSimpleTwoTicksOneControl(t *testing.T) {
 	ctx := context.Background()
 	opts := Options{Parallel: 1, Servers: []string{""}, StartCount: 10}
-	controlChan := make(chan controlMessages, 1)
+	controlChan := make(chan ControlMessages, 1)
 	bus := make(chan busMessage, 2)
 	tickChan := make(chan time.Time, 2)
 	tickChan <- time.Time{}
 	tickChan <- time.Time{}
 	close(tickChan)
-	controlChan <- controlMessages{20, 1}
+	controlChan <- ControlMessages{20, 1}
 
 	startGenerator(ctx, opts, controlChan, bus, tickChan)
 	assert.Equal(t, 2, len(bus))
@@ -429,14 +429,14 @@ func TestStartGenerator_ControlSimpleTwoTicksOneControl(t *testing.T) {
 func TestStartGenerator_ControlSimpleTwoTicksTwoControl(t *testing.T) {
 	ctx := context.Background()
 	opts := Options{Parallel: 1, Servers: []string{""}, StartCount: 10}
-	controlChan := make(chan controlMessages, 2)
+	controlChan := make(chan ControlMessages, 2)
 	bus := make(chan busMessage, 2)
 	tickChan := make(chan time.Time, 2)
 	tickChan <- time.Time{}
 	tickChan <- time.Time{}
 	close(tickChan)
-	controlChan <- controlMessages{20, 1}
-	controlChan <- controlMessages{8, 10}
+	controlChan <- ControlMessages{20, 1}
+	controlChan <- ControlMessages{8, 10}
 
 	startGenerator(ctx, opts, controlChan, bus, tickChan)
 	assert.Equal(t, 2, len(bus))

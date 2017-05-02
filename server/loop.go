@@ -17,8 +17,8 @@ type busMessage struct {
 	time     []byte
 }
 
-type controlMessages struct {
-	count, step int
+type ControlMessages struct {
+	Count, Step int
 }
 
 type Options struct {
@@ -88,13 +88,17 @@ func startClient(ctx context.Context, cli interfaces.Client, basic interfaces.Ba
 }
 
 func startGenerator(ctx context.Context, opts Options,
-	controlChan <-chan controlMessages, bus chan<- busMessage, tickChan <-chan time.Time) {
+	controlChan <-chan ControlMessages, bus chan<- busMessage, tickChan <-chan time.Time) {
 	ctx = context.WithValue(ctx, log.KeyOperation, "startGenerator")
-	defaultControl := controlMessages{opts.StartCount, opts.StartStep}
+	defaultControl := ControlMessages{opts.StartCount, opts.StartStep}
 	count := opts.StartCount
 	for t := range tickChan {
 		select {
-		case defaultControl = <-controlChan:
+		case tmpControl := <-controlChan:
+			if tmpControl.Step == 0 {
+				tmpControl.Step = defaultControl.Step
+			}
+			defaultControl = tmpControl
 		default:
 		}
 		count = checkCount(count, &defaultControl)
@@ -106,22 +110,22 @@ func startGenerator(ctx context.Context, opts Options,
 	}
 }
 
-func checkCount(initialCount int, defaultControl *controlMessages) int {
+func checkCount(initialCount int, defaultControl *ControlMessages) int {
 	switch {
-	case defaultControl.count == initialCount:
+	case defaultControl.Count == initialCount:
 		return initialCount
-	case defaultControl.count > initialCount:
-		tmpCount := initialCount + defaultControl.step
-		if tmpCount < defaultControl.count {
+	case defaultControl.Count > initialCount:
+		tmpCount := initialCount + defaultControl.Step
+		if tmpCount < defaultControl.Count {
 			return tmpCount
 		}
-		return defaultControl.count
+		return defaultControl.Count
 	}
-	tmpCount := initialCount - defaultControl.step
-	if tmpCount > defaultControl.count {
+	tmpCount := initialCount - defaultControl.Step
+	if tmpCount > defaultControl.Count {
 		return tmpCount
 	}
-	return defaultControl.count
+	return defaultControl.Count
 }
 
 // I know, it's really non well performer. But that method will work only 1 time/sec
@@ -172,10 +176,12 @@ func statisctics(ctx context.Context, ch chan statMessage) {
 		}
 		log.SLogger.Debug("End tick")
 		for k, v := range hashSucc {
-			log.Logger.Info("Succes sending messages", log.ParseFields(context.WithValue(context.WithValue(ctx, log.KeyUrl, k), log.KeyCount, v))...)
+			log.Logger.Info("Succes sending messages",
+				log.ParseFields(context.WithValue(context.WithValue(ctx, log.KeyUrl, k), log.KeyCount, v))...)
 		}
 		for k, v := range hashErr {
-			log.Logger.Info("Error sending messages", log.ParseFields(context.WithValue(context.WithValue(ctx, log.KeyUrl, k), log.KeyCount, v))...)
+			log.Logger.Info("Error sending messages",
+				log.ParseFields(context.WithValue(context.WithValue(ctx, log.KeyUrl, k), log.KeyCount, v))...)
 		}
 	}
 }
