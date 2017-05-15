@@ -6,6 +6,7 @@ type Req interface{}
 
 type Client interface {
 	Send(Req, []byte) error
+	Host() string
 }
 
 type Basic interface {

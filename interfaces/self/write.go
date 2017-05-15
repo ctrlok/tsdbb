@@ -14,6 +14,10 @@ func (c *Client) Send(interfaces.Req, []byte) error {
 	return nil
 }
 
+func (c *Client) Host() string {
+	return ""
+}
+
 type Basic struct {
 	req *Req
 }

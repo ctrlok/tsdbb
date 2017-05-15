@@ -24,4 +24,12 @@ var writeCmd = &cobra.Command{
 
 func init() {
 	benchCmd.AddCommand(writeCmd)
+	writeCmd.PersistentFlags().Bool("no-stats", false, "Disable internal statistics")
+	writeCmd.PersistentFlags().String("statsd", "udp://localhost:8125", "Set statsd adress")
+	writeCmd.PersistentFlags().String("graphite", "tcp://localhost:2003", "Set graphite adress")
+}
+
+func writePreRun(cmd *cobra.Command, args []string) {
+	rootPreRun(cmd, args)
+
 }

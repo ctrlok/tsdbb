@@ -24,6 +24,10 @@ type testCli struct {
 	errCount, succCount int
 }
 
+func (c *testCli) Host() string {
+	return ""
+}
+
 func (c *testCli) Send(interfaces.Req, []byte) error {
 	if c.returnErr {
 		c.errCount++
@@ -62,26 +66,24 @@ func (b *testBasic) NewClient(url *url.URL) (interfaces.Client, error) {
 
 func TestStartClient_Nothing(t *testing.T) {
 	bus := make(chan busMessage, 1)
-	st := make(chan statMessage, 1)
 	cli := testCli{returnErr: false}
 	basic := testBasic{}
 
 	bus <- busMessage{}
 	close(bus)
-	startClient(context.Background(), &cli, &basic, bus, st)
+	startClient(context.Background(), &cli, &basic, bus)
 	assert.Equal(t, 0, cli.succCount)
 	assert.Equal(t, 0, basic.reqCount)
 }
 
 func TestStartClient_SimpleSucc(t *testing.T) {
 	bus := make(chan busMessage, 1)
-	st := make(chan statMessage, 1)
 	cli := testCli{returnErr: false}
 	basic := testBasic{}
 
 	bus <- busMessage{context.Background(), 0, 1, []byte{}}
 	close(bus)
-	startClient(context.Background(), &cli, &basic, bus, st)
+	startClient(context.Background(), &cli, &basic, bus)
 	assert.Equal(t, 1, cli.succCount)
 	assert.Equal(t, 1, basic.reqCount)
 	assert.Contains(t, basic.reqNumAsked, 0)
@@ -90,13 +92,12 @@ func TestStartClient_SimpleSucc(t *testing.T) {
 
 func TestStartClient_SimpleSuccThreeSend(t *testing.T) {
 	bus := make(chan busMessage, 1)
-	st := make(chan statMessage, 1)
 	cli := testCli{returnErr: false}
 	basic := testBasic{}
 
 	bus <- busMessage{context.Background(), 0, 3, []byte{}}
 	close(bus)
-	startClient(context.Background(), &cli, &basic, bus, st)
+	startClient(context.Background(), &cli, &basic, bus)
 	assert.Equal(t, 3, cli.succCount)
 	assert.Equal(t, 3, basic.reqCount)
 	assert.Contains(t, basic.reqNumAsked, 0)
@@ -107,14 +108,13 @@ func TestStartClient_SimpleSuccThreeSend(t *testing.T) {
 
 func TestStartClient_SimpleSuccTwoBus(t *testing.T) {
 	bus := make(chan busMessage, 2)
-	st := make(chan statMessage, 2)
 	cli := testCli{returnErr: false}
 	basic := testBasic{}
 
 	bus <- busMessage{context.Background(), 0, 3, []byte{}}
 	bus <- busMessage{context.Background(), 3, 3, []byte{}}
 	close(bus)
-	startClient(context.Background(), &cli, &basic, bus, st)
+	startClient(context.Background(), &cli, &basic, bus)
 	assert.Equal(t, 6, cli.succCount)
 	assert.Equal(t, 6, basic.reqCount)
 	assert.Contains(t, basic.reqNumAsked, 0)
@@ -125,100 +125,39 @@ func TestStartClient_SimpleSuccTwoBus(t *testing.T) {
 
 func TestStartClient_BreakContext(t *testing.T) {
 	bus := make(chan busMessage, 1)
-	st := make(chan statMessage, 1)
 	cli := testCli{returnErr: false}
 	basic := testBasic{}
 	ctx, cacnel := context.WithCancel(context.Background())
 	cacnel()
 
-	bus <- busMessage{ctx, 1, 200, []byte{}}
+	bus <- busMessage{ctx, 1, 300, []byte{}}
 	close(bus)
-	startClient(context.Background(), &cli, &basic, bus, st)
-	assert.Equal(t, 99, cli.succCount)
-	assert.Equal(t, 99, basic.reqCount)
+	startClient(context.Background(), &cli, &basic, bus)
+	assert.Equal(t, 100, cli.succCount)
+	assert.Equal(t, 100, basic.reqCount)
 	assert.Contains(t, basic.reqNumAsked, 1)
-	assert.Contains(t, basic.reqNumAsked, 99)
-	assert.NotContains(t, basic.reqNumAsked, 100)
-}
-
-func TestStartClient_StatOneSucc(t *testing.T) {
-	bus := make(chan busMessage, 1)
-	st := make(chan statMessage, 1)
-	cli := testCli{returnErr: false}
-	basic := testBasic{}
-
-	bus <- busMessage{context.Background(), 0, 1, []byte{}}
-	close(bus)
-	startClient(context.Background(), &cli, &basic, bus, st)
-	statMsg := <-st
-	assert.Equal(t, 1, statMsg.succ)
-	assert.Equal(t, 0, statMsg.err)
-}
-
-func TestStartClient_StatManySucc(t *testing.T) {
-	bus := make(chan busMessage, 1)
-	st := make(chan statMessage, 1)
-	cli := testCli{returnErr: false}
-	basic := testBasic{}
-
-	bus <- busMessage{context.Background(), 0, 50, []byte{}}
-	close(bus)
-	startClient(context.Background(), &cli, &basic, bus, st)
-	statMsg := <-st
-	assert.Equal(t, 50, statMsg.succ)
-	assert.Equal(t, 0, statMsg.err)
-}
-
-func TestStartClient_StatOneErr(t *testing.T) {
-	bus := make(chan busMessage, 1)
-	st := make(chan statMessage, 1)
-	cli := testCli{returnErr: true}
-	basic := testBasic{}
-
-	bus <- busMessage{context.Background(), 0, 1, []byte{}}
-	close(bus)
-	startClient(context.Background(), &cli, &basic, bus, st)
-	statMsg := <-st
-	assert.Equal(t, 0, statMsg.succ)
-	assert.Equal(t, 1, statMsg.err)
-}
-
-func TestStartClient_StatWithBreakContext(t *testing.T) {
-	bus := make(chan busMessage, 1)
-	st := make(chan statMessage, 1)
-	cli := testCli{returnErr: false}
-	basic := testBasic{}
-	ctx, cacnel := context.WithCancel(context.Background())
-	cacnel()
-
-	bus <- busMessage{ctx, 1, 200, []byte{}}
-	close(bus)
-	startClient(context.Background(), &cli, &basic, bus, st)
-	statMsg := <-st
-	assert.Equal(t, 99, statMsg.succ)
-	assert.Equal(t, 0, statMsg.err)
+	assert.Contains(t, basic.reqNumAsked, 100)
+	assert.NotContains(t, basic.reqNumAsked, 101)
 }
 
 func TestStartClients_FailLen(t *testing.T) {
 	bus := make(chan busMessage, 1)
-	st := make(chan statMessage, 1)
 	ctx := context.Background()
 	basic := testBasic{}
 	opts := Options{Servers: []string{}}
 
-	err := startClients(ctx, &basic, opts, bus, st)
+	err := startClients(ctx, &basic, opts, bus)
 	assert.Error(t, err, "Should return error if no servers...")
 	assert.Zero(t, basic.cliCount)
 }
 
 func TestStartClients_FailUrlParse(t *testing.T) {
 	bus := make(chan busMessage, 1)
-	st := make(chan statMessage, 1)
 	ctx := context.Background()
 	basic := testBasic{}
 	opts := Options{Servers: []string{"12e:12e;asd"}, Parallel: 1}
 
-	err := startClients(ctx, &basic, opts, bus, st)
+	err := startClients(ctx, &basic, opts, bus)
 	assert.Error(t, err, "Fail with parse bad url")
 	assert.IsType(t, &url.Error{}, err, "Fail with parsing bad url")
 	assert.Zero(t, basic.cliCount)
@@ -226,12 +165,11 @@ func TestStartClients_FailUrlParse(t *testing.T) {
 
 func TestStartClients_FailCreatingCli(t *testing.T) {
 	bus := make(chan busMessage, 1)
-	st := make(chan statMessage, 1)
 	ctx := context.Background()
 	basic := testBasic{failCreateCli: true}
 	opts := Options{Servers: []string{"http://example.com:8080/"}, Parallel: 1}
 
-	err := startClients(ctx, &basic, opts, bus, st)
+	err := startClients(ctx, &basic, opts, bus)
 	assert.Error(t, err, "Should fail on cli creation")
 	assert.Equal(t, "errorCli", err.Error(), "Should return error with cli creation")
 	assert.NotZero(t, basic.cliCount)
@@ -240,14 +178,13 @@ func TestStartClients_FailCreatingCli(t *testing.T) {
 
 func TestStartClients_SuccStartOneClient(t *testing.T) {
 	bus := make(chan busMessage, 1)
-	st := make(chan statMessage, 1)
 	ctx := context.Background()
 	basic := testBasic{}
 	opts := Options{Servers: []string{"http://example.com:8080/"}, Parallel: 1}
 	bus <- busMessage{}
 	close(bus)
 
-	err := startClients(ctx, &basic, opts, bus, st)
+	err := startClients(ctx, &basic, opts, bus)
 	assert.NoError(t, err)
 	assert.NotZero(t, basic.cliCount)
 	time.Sleep(time.Millisecond)

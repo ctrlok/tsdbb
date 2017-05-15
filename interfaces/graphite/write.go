@@ -78,6 +78,10 @@ type Client struct {
 	host string
 }
 
+func (c *Client) Host() string {
+	return c.host
+}
+
 var helpNum = []byte{32, 49, 32}
 var newLine = []byte{10}
 

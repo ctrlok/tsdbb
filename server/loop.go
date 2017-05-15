@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/ctrlok/tsdbb/interfaces"
 	"github.com/ctrlok/tsdbb/log"
 )
@@ -27,10 +28,11 @@ type Options struct {
 	Tick, StatTick        time.Duration
 	ListenURL             string
 	Servers               []string
+	StatPrefix            string
 }
 
 func startClients(ctx context.Context, basic interfaces.Basic, opts Options,
-	bus <-chan busMessage, st chan<- statMessage) (err error) {
+	bus <-chan busMessage) (err error) {
 	ctx = context.WithValue(ctx, log.KeyOperation, "startClients")
 	if len(opts.Servers) == 0 {
 		err = fmt.Errorf("You should define at least one server to send metrics")
@@ -51,38 +53,44 @@ func startClients(ctx context.Context, basic interfaces.Basic, opts Options,
 				log.Logger.Error("Error creating client "+err.Error(), log.ParseFields(ctx2)...)
 				return err
 			}
-			go startClient(ctx2, cli, basic, bus, st)
+			go startClient(ctx2, cli, basic, bus)
 		}
 	}
 	return nil
 }
 
 func startClient(ctx context.Context, cli interfaces.Client, basic interfaces.Basic,
-	bus <-chan busMessage, st chan<- statMessage) {
+	bus <-chan busMessage) {
 	ctx = context.WithValue(ctx, log.KeyOperation, "sendMessage")
 	log.Logger.Debug("Starting...", log.ParseFields(ctx)...)
+	metricNameHostSucc := []string{"benchcli", cli.Host(), "sended"}
+	metricNameAllSucc := []string{"benchcli", "all", "sended"}
+	metricNameHostErr := []string{"benchcli", cli.Host(), "error"}
+	metricNameAllErr := []string{"benchcli", "all", "error"}
 	for message := range bus {
-		succCount := 0
-		errCount := 0
 		end := message.start + message.N
+		messagesProcessed := 0
 	SEND_MESSAGES:
 		for n := message.start; n < end; n++ {
-			if n%100 == 0 {
+			if messagesProcessed == 100 {
 				select {
 				case <-message.ctx.Done():
 					break SEND_MESSAGES
 				default:
+					metrics.IncrCounter(metricNameHostSucc, 100)
+					metrics.IncrCounter(metricNameAllSucc, 100)
+					messagesProcessed = 0
 				}
 			}
 			err := cli.Send(basic.Req(n), message.time)
 			if err != nil {
-				log.Logger.Warn("Error sending message", log.ParseFields(ctx)...)
-				errCount++
+				log.Logger.Debug("Error sending message", log.ParseFields(ctx)...)
+				metrics.IncrCounter(metricNameHostErr, 1)
+				metrics.IncrCounter(metricNameAllErr, 1)
 				break
 			}
-			succCount++
+			messagesProcessed++
 		}
-		st <- statMessage{succCount, errCount, ctx}
 
 	}
 }
@@ -142,46 +150,4 @@ func splitArray(ctx context.Context, count, senders int, t time.Time) (array []b
 	}
 	array = append(array, busMessage{start: k, N: count - k, time: timeByte, ctx: ctx})
 	return
-}
-
-type statMessage struct {
-	succ, err int
-	ctx       context.Context
-}
-
-func statisctics(ctx context.Context, ch chan statMessage) {
-	for {
-		log.SLogger.Debug("Starting new statistics tick...")
-		hashSucc := map[string]int{}
-		hashErr := map[string]int{}
-		msg := <-ch
-		hashSucc[msg.ctx.Value(log.KeyUrl).(string)] = msg.succ
-		if msg.err != 0 {
-			hashErr[msg.ctx.Value(log.KeyUrl).(string)] = msg.err
-		}
-		timer := time.NewTimer(500 * time.Millisecond)
-	LOOP:
-		for {
-			select {
-			case <-timer.C:
-				log.SLogger.Debug("End tick of statistics")
-				break LOOP
-			case msg = <-ch:
-				log.SLogger.Debug("Revieve message from statistics channel")
-				hashSucc[msg.ctx.Value(log.KeyUrl).(string)] = hashSucc[msg.ctx.Value(log.KeyUrl).(string)] + msg.succ
-				if msg.err != 0 {
-					hashErr[msg.ctx.Value(log.KeyUrl).(string)] = msg.err
-				}
-			}
-		}
-		log.SLogger.Debug("End tick")
-		for k, v := range hashSucc {
-			log.Logger.Info("Succes sending messages",
-				log.ParseFields(context.WithValue(context.WithValue(ctx, log.KeyUrl, k), log.KeyCount, v))...)
-		}
-		for k, v := range hashErr {
-			log.Logger.Info("Error sending messages",
-				log.ParseFields(context.WithValue(context.WithValue(ctx, log.KeyUrl, k), log.KeyCount, v))...)
-		}
-	}
 }

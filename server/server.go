@@ -15,10 +15,8 @@ func StartServer(basic interfaces.Basic, opts Options, ctx context.Context) {
 	basic.NewRequests(100000000)
 	log.SLogger.Infow("Metrics generated", "timer_ns", int((time.Now().UnixNano()-timeNow)/1000000))
 	bus := make(chan busMessage, 10000000)
-	chStat := make(chan statMessage)
-	go statisctics(ctx, chStat)
 
-	err := startClients(ctx, basic, opts, bus, chStat)
+	err := startClients(ctx, basic, opts, bus)
 	if err != nil {
 		log.Logger.Error("Fail to start server!", log.ParseFields(ctx)...)
 	}
