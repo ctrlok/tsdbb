@@ -46,3 +46,9 @@ func ParseFields(ctx context.Context) []zapcore.Field {
 	}
 	return fields
 }
+
+type LogInfo struct{}
+
+func (l LogInfo) Printf(s string, i ...interface{}) {
+	SLogger.Infof(s, i)
+}

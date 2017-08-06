@@ -8,10 +8,13 @@ import (
 
 	"github.com/ctrlok/tsdbb/interfaces"
 	"github.com/ctrlok/tsdbb/log"
+
+	"github.com/rcrowley/go-metrics"
 )
 
 func StartServer(basic interfaces.Basic, opts Options, ctx context.Context) {
 	timeNow := time.Now().UnixNano()
+	go metrics.Log(metrics.DefaultRegistry, time.Second, log.LogInfo{})
 	basic.NewRequests(100000000)
 	log.SLogger.Infow("Metrics generated", "timer_ns", int((time.Now().UnixNano()-timeNow)/1000000))
 	bus := make(chan busMessage, 10000000)

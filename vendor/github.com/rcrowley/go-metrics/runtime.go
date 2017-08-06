@@ -9,40 +9,40 @@ import (
 var (
 	memStats       runtime.MemStats
 	runtimeMetrics struct {
-					   MemStats struct {
-						   Alloc         Gauge
-						   BuckHashSys   Gauge
-						   DebugGC       Gauge
-						   EnableGC      Gauge
-						   Frees         Gauge
-						   HeapAlloc     Gauge
-						   HeapIdle      Gauge
-						   HeapInuse     Gauge
-						   HeapObjects   Gauge
-						   HeapReleased  Gauge
-						   HeapSys       Gauge
-						   LastGC        Gauge
-						   Lookups       Gauge
-						   Mallocs       Gauge
-						   MCacheInuse   Gauge
-						   MCacheSys     Gauge
-						   MSpanInuse    Gauge
-						   MSpanSys      Gauge
-						   NextGC        Gauge
-						   NumGC         Gauge
-						   GCCPUFraction GaugeFloat64
-						   PauseNs       Histogram
-						   PauseTotalNs  Gauge
-						   StackInuse    Gauge
-						   StackSys      Gauge
-						   Sys           Gauge
-						   TotalAlloc    Gauge
-					   }
-					   NumCgoCall   Gauge
-					   NumGoroutine Gauge
-					   NumThread    Gauge
-					   ReadMemStats Timer
-				   }
+		MemStats struct {
+			Alloc         Gauge
+			BuckHashSys   Gauge
+			DebugGC       Gauge
+			EnableGC      Gauge
+			Frees         Gauge
+			HeapAlloc     Gauge
+			HeapIdle      Gauge
+			HeapInuse     Gauge
+			HeapObjects   Gauge
+			HeapReleased  Gauge
+			HeapSys       Gauge
+			LastGC        Gauge
+			Lookups       Gauge
+			Mallocs       Gauge
+			MCacheInuse   Gauge
+			MCacheSys     Gauge
+			MSpanInuse    Gauge
+			MSpanSys      Gauge
+			NextGC        Gauge
+			NumGC         Gauge
+			GCCPUFraction GaugeFloat64
+			PauseNs       Histogram
+			PauseTotalNs  Gauge
+			StackInuse    Gauge
+			StackSys      Gauge
+			Sys           Gauge
+			TotalAlloc    Gauge
+		}
+		NumCgoCall   Gauge
+		NumGoroutine Gauge
+		NumThread    Gauge
+		ReadMemStats Timer
+	}
 	frees       uint64
 	lookups     uint64
 	mallocs     uint64

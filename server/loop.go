@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/armon/go-metrics"
 	"github.com/ctrlok/tsdbb/interfaces"
 	"github.com/ctrlok/tsdbb/log"
+	"github.com/rcrowley/go-metrics"
 )
 
 type busMessage struct {
@@ -63,35 +63,33 @@ func startClient(ctx context.Context, cli interfaces.Client, basic interfaces.Ba
 	bus <-chan busMessage) {
 	ctx = context.WithValue(ctx, log.KeyOperation, "sendMessage")
 	log.Logger.Debug("Starting...", log.ParseFields(ctx)...)
-	metricNameHostSucc := []string{"benchcli", cli.Host(), "sended"}
-	metricNameAllSucc := []string{"benchcli", "all", "sended"}
-	metricNameHostErr := []string{"benchcli", cli.Host(), "error"}
-	metricNameAllErr := []string{"benchcli", "all", "error"}
+	metricNameHostSucc := metrics.NewCounter()
+	metrics.Register(fmt.Sprintf("benchcli.%s.sended", cli.Host()), metricNameHostSucc)
+	metricNameAllSucc := metrics.NewCounter()
+	metrics.Register("benchcli.all.sended", metricNameAllSucc)
+	metricNameHostErr := metrics.NewCounter()
+	metrics.Register(fmt.Sprintf("benchcli.%s.error", cli.Host()), metricNameHostErr)
+	metricNameAllErr := metrics.NewCounter()
+	metrics.Register("benchcli.all.error", metricNameAllErr)
 	for message := range bus {
 		end := message.start + message.N
-		messagesProcessed := 0
 	SEND_MESSAGES:
 		for n := message.start; n < end; n++ {
-			if messagesProcessed == 100 {
-				select {
-				case <-message.ctx.Done():
-					break SEND_MESSAGES
-				default:
-					metrics.IncrCounter(metricNameHostSucc, 100)
-					metrics.IncrCounter(metricNameAllSucc, 100)
-					messagesProcessed = 0
+			select {
+			case <-message.ctx.Done():
+				break SEND_MESSAGES
+			default:
+				metricNameHostSucc.Inc(1)
+				metricNameAllSucc.Inc(1)
+				err := cli.Send(basic.Req(n), message.time)
+				if err != nil {
+					log.Logger.Debug("Error sending message", log.ParseFields(ctx)...)
+					metricNameHostErr.Inc(1)
+					metricNameAllErr.Inc(1)
+					break
 				}
 			}
-			err := cli.Send(basic.Req(n), message.time)
-			if err != nil {
-				log.Logger.Debug("Error sending message", log.ParseFields(ctx)...)
-				metrics.IncrCounter(metricNameHostErr, 1)
-				metrics.IncrCounter(metricNameAllErr, 1)
-				break
-			}
-			messagesProcessed++
 		}
-
 	}
 }
 
